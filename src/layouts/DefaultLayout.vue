@@ -1,19 +1,6 @@
 <script setup lang="ts">
-/*
-  这是 DefaultLayout.vue 的脚本部分（已整理并添加注释）
-  目标：让完全没有 Vue/TypeScript/Ant Design 经验的小白也能读懂每一行在做什么。
-*/
-
-/* -----------------------
-   导入（Import）
-   - Vue 的 ref 和 h：用于创建响应式变量与手动创建 VNode（给菜单图标用）
-   - Ant Design 的 Layout、Menu 以及图标组件
-   - Vue Router 的 useRouter 用于编程式导航
-   - 两个 svg 图片用于折叠/展开切换图标
-   知识点：在 <script setup> 中导入的变量会自动在模板中可用（不需要 export 或 return）。
-   ----------------------- */
-import { ref, h } from 'vue'
-import { Layout, Menu } from 'ant-design-vue'
+import { ref } from 'vue'
+import { Layout} from 'ant-design-vue'
 import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
 import sider_collapsed from '@/assets/svg/sidebar-collapse.svg'
@@ -57,25 +44,23 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   {
     key: '1',
-    icon: () => h(UserOutlined),
+    icon: UserOutlined,
     label: 'AI对话',
     path: '/chat'
   },
   {
     key: '2',
-    icon: () => h(UploadOutlined),
+    icon: UploadOutlined,
     label: '文档库',
     path: '/files'
   }
 ]
 
-const handleMenuClick = (info: { key: string | number }) => {
-  const key = String(info.key)
-  const item = menuItems.find(item => item.key === key)
-  if (item && item.path) {
-    router.push(item.path)
-  }
+const handleMenuClick = (item: MenuItem) => {
+  selectedKeys.value = [item.key]
+  if (item.path) router.push(item.path)
 }
+
 </script>
 
 <template>
@@ -83,6 +68,7 @@ const handleMenuClick = (info: { key: string | number }) => {
     <Sider
       class="sider-style"
       :width="260"
+      :collapsed-width="52"
       v-model:collapsed="collapsed"
       collapsible
       :trigger="null"
@@ -134,14 +120,27 @@ const handleMenuClick = (info: { key: string | number }) => {
         </div>
       </div>
 
-      <Menu
-        v-model:selectedKeys="selectedKeys"
-        mode="inline"
-        :items="menuItems"
-        @click="handleMenuClick"
-      />
+      <div class="custom-menu">
+        <div
+          v-for="item in menuItems"
+          :key="item.key"
+          class="menu-item"
+          :class="{ active: selectedKeys.includes(item.key), collapsed: collapsed }"
+          @click="() => handleMenuClick(item)"
+        >
+          <!-- 图标 -->
+          <div class="menu-icon">
+            <component :is="item.icon" />
+          </div>
 
-      
+          <!-- 文本（折叠时淡出） -->
+          <transition name="fade">
+            <div v-if="!collapsed" class="menu-label">
+              {{ item.label }}
+            </div>
+          </transition>
+        </div>
+      </div>
     </Sider>
 
     <Layout class="layout-main">
@@ -232,11 +231,9 @@ const handleMenuClick = (info: { key: string | number }) => {
   说明：height 计算用到了头部和外层 margin（减去这些值）
   ====================================================== */
 .site-layout-content {
-  margin: 24px 16px; /* 上下左右的外边距 */
-  padding: 24px;     /* 内部空白 */
   background: #fff;
   overflow: auto;    /* 内容过多时出现滚动条 */
-  height: calc(100vh - 64px - 48px); /* 计算剩余高度（头部 64 + margin top+bottom 48） */
+  height: calc(100vh - 64px); /* 计算剩余高度（头部 64 + margin top+bottom 48） */
   box-sizing: border-box;
 }
 
@@ -420,150 +417,22 @@ const handleMenuClick = (info: { key: string | number }) => {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-/* ======================================================
-  菜单（Ant Design）定制样式
-  说明：:deep 是 Vue scoped 时访问子组件内类名的方式
-  - 调整菜单宽度、背景、间距、悬停与选中状态
-  ====================================================== */
-
-/* 菜单整体容器 */
-:deep(.ant-menu) {
-  width: 260px;
-  border-right: none; /* 去除右侧边框 */
-  transition: all 0.31s ease; /* 添加过度动效果 */
-  background: #f9f9f9;
-  margin: 8px 0 0;
-  padding: 8px 0;
-  box-sizing: border-box;
-}
-
-/* 单独菜单项（未折叠时）：
-  - 增加高度、圆角、内外间距、对齐方式
-  - transition 使得 hover/选中状态更平滑
-*/
-/* 菜单单项（未折叠时）的样式
-  说明：这个规则用于定制 Ant Design 的 .ant-menu-item 在侧栏展开时的外观。
-  每个属性都带有详细中文注释，便于初学者理解为什么要这样设置。
-*/
-:deep(.ant-menu-item) {
-
-  position: relative; /* 让内部绝对定位图标相对它定位 */
-  /* 元素总体宽度：控制每个菜单项的可点击区域宽度（留一点内边距空间）。
-    注意：侧栏宽度为 260px，这里设为 248px 留出左右 margin/padding 的空间。 */
-  width: 248px;
-
-  /* 高度：控制菜单项行高，使图标与文字垂直居中（便于点击与视觉一致性） */
-  height: 38px;
-
-  /* 外边距：上下左右的间隔，避免菜单项紧贴在一起。
-    第一位：上下间距（4px）；第二位：左右间距（6px） */
-  margin: 4px 6px;
-
-  /* 内边距：控制图标与文字之间以及文本与圆角边缘的距离。
-    使用 !important 是为了覆盖 Ant Design 默认的内边距规则，确保自定义样式生效。*/
-  padding: 6px 10px 6px 42px !important; /* 左内边距加大，给图标留空间 */
-
-  /* 圆角：让每个菜单项看起来更柔和、现代（8px 的圆角通常比较协调） */
-  border-radius: 8px;
-
-  /* 行高：配合 height 保证文字垂直居中（当文字只有一行时效果最佳） */
-  line-height: 36px;
-
-  /* 布局方式：使用 flex 便于左右放置图标和文字并做对齐控制 */
-  display: flex;
-
-  /* 垂直居中：使图标和文字在高度方向上保持居中（更美观、更易点击） */
-  align-items: center;
-
-  /* 过渡动画：当菜单项 hover/选中/位移动画时平滑过渡，提升交互体验 */
-  transition: all 0.25s ease;
-
-  /* 盒模型：确保 width/height/padding/border 的计算符合预期（推荐设置） */
-  box-sizing: border-box;
-
-  /* 文本颜色：默认颜色（在 hover/选中时会被覆盖为主题色） */
-  color: #333;
-
-  /* 字重：适度加粗，让菜单项在视觉上更易读，但不要过重 */
-  font-weight: 500;
-  overflow: hidden; /* 防止图标动画溢出 */
-  cursor: pointer;
-
-}
-
-/* hover 状态：
-  - 更浅的背景
-  - 微微右移（translateX）产生反馈
-  - 文本变蓝
-*/
-:deep(.ant-menu-item:hover) {
-  background-color: #f2f2f2;
-  transform: translateX(2px); /*很小的一个点，但是极大提高了体验效果: 向右位移 2px*/
-  color: #1890ff;
-}
-
-/* 选中状态：
-  - 更深的灰白背景
-  - 蓝色字体和左侧蓝条（box-shadow 模拟）
-*/
-:deep(.ant-menu-item-selected) {
-  background-color: #efefef !important;
-  color: #1890ff;
-  font-weight: 600;
-  box-shadow: inset 2px 0 0 #1890ff; /* 左侧一条蓝色高光 */
-  transform: translateX(2px);
-}
-
-/* 菜单项图标（.anticon）样式：设置图标大小与间距 */
-:deep(.ant-menu-item .anticon) {
-  /* font-size: 18px;
-  margin-right: 12px;
-  transition: color 0.25s ease; */
-  position: absolute;
-  left: 16px;        /* 距左侧 16px，可根据需要微调 */
-  top: 50%;          /* 垂直居中 */
-  transform: translateY(-50%);
-  font-size: 18px;
-  transition: color 0.25s ease, transform 0.25s ease;
-}
-
-/* hover 或 选中时图标也变蓝（与文字保持一致） */
-:deep(.ant-menu-item:hover .anticon),
-:deep(.ant-menu-item-selected .anticon) {
-  color: #1890ff;
-}
-
-/* 菜单标题内容（文字部分）占满剩余空间 */
-:deep(.ant-menu-item .ant-menu-title-content) {
-  flex: 1;
-  box-sizing: border-box;
-}
-
-/* 去掉 Ant 默认的右边框（视觉更扁平） */
-:deep(.ant-menu-inline) {
-  border-right: none;
-}
 
 /* ======================================================
-  折叠状态下的特殊调整（侧栏宽变为 80px）
+  折叠状态下的特殊调整（侧栏宽变为 52px）
   这些规则通过 .ant-layout-sider-collapsed class 生效（由 ant-layout 添加）
   ====================================================== */
 
-/* 折叠时菜单项的间距和高度调整（适配窄侧栏） */
-.sider-style.ant-layout-sider-collapsed :deep(.ant-menu-item) {
-  margin: 8px 12px;
-  height: 40px;
+/* ❗折叠后侧栏整体宽度调整（穿透 ant-design 样式） */
+:deep(.sider-style.ant-layout-sider-collapsed) {
+  width: 52px !important;
+  min-width: 52px !important;
 }
 
-/* 折叠后侧栏整体宽度调整 */
-.sider-style.ant-layout-sider-collapsed {
-  width: 80px;
-  min-width: 80px;
-}
 
 /* 折叠后 logo 容器宽度、padding 与对齐方式调整（居中显示） */
 .sider-style.ant-layout-sider-collapsed .logo {
-  width: 80px;
+  width: 52px;
   padding: 0;
   justify-content: center;
 }
@@ -573,31 +442,85 @@ const handleMenuClick = (info: { key: string | number }) => {
   display: none;
 }
 
-/* 折叠后菜单整体宽度变窄，文本居中（只显示图标） */
-.sider-style.ant-layout-sider-collapsed :deep(.ant-menu) {
-  width: 80px;
-  text-align: center;
+/* ====================== 自定义菜单区域 ====================== */
+.custom-menu {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+  transition: all 0.3s ease;
 }
 
-/* 折叠后单项内边距、对齐、宽度调整（只显示图标） */
-.sider-style.ant-layout-sider-collapsed :deep(.ant-menu-item) {
-  padding: 0 !important;
-  justify-content: center;
-  margin: 4px 12px;
-  width: auto;
+/* 单个菜单项样式 */
+.menu-item {
+  display: flex;
+  align-items: center;
+  /* position: absolute; */
   height: 36px;
+  margin: 0px 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #333;
+  font-weight: 500;
+  overflow: hidden;
 }
 
-/* 折叠后图标的右间距去掉，字体/图标尺寸微调 */
-.sider-style.ant-layout-sider-collapsed :deep(.ant-menu-item .anticon) {
-  margin-right: 0;
-  font-size: 16px;
+/* hover 效果 */
+.menu-item:hover {
+  background-color: #f2f2f2;
+  color: #1890ff;
+  transform: translateX(2px);
 }
 
-/* 折叠后隐藏菜单文字内容（只留下图标） */
-.sider-style.ant-layout-sider-collapsed :deep(.ant-menu-item .ant-menu-title-content) {
-  display: none;
+/* 选中状态 */
+.menu-item.active {
+  background-color: #efefef;
+  color: #1890ff;
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 #1890ff;
+  transform: translateX(2px);
+}
+
+/* 图标部分（左侧固定） */
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  transition: all 0.3s ease;
+}
+
+/* 标签文字部分 */
+.menu-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 折叠状态下的样式 */
+.sider-style.ant-layout-sider-collapsed .custom-menu {
+  align-items: center;
+}
+
+.sider-style.ant-layout-sider-collapsed .menu-item {
+  justify-content: center;
+  width: 100%;
+  /* width: 52px; */
+  padding: 0;
+}
+
+/* 过渡动画名称 fade（用于文字显示淡入淡出） */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
+
 
 </style>

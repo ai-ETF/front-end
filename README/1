@@ -1,0 +1,108 @@
+## ⚡ 第二处 TODO：侧边栏折叠/展开时过渡不自然（原因 + 解决方案）
+
+### 🧩 原因分析
+
+当前问题：
+
+> “在 sider 从收缩状态变为伸展状态的时候，过渡不自然。”
+
+原因主要有两个：
+
+1. **Ant Design Vue 的 `Sider` 在折叠时直接改变宽度 (`width: 260px → 80px`)，但里面的内容（如 `.logo`）布局突变，没有平滑动画。**
+2. **`.ant-menu` 的宽度和文本显示也是瞬间变化的（直接 `display: none`），导致内容闪烁或跳变。**
+
+---
+
+### 💡 解决方案思路
+
+我们可以在 CSS 中添加过渡动画，让宽度和透明度平滑变化，而不是瞬间切换。
+
+具体思路：
+
+* 给 `.logo`、`.logo-text`、`.ant-menu-item .ant-menu-title-content` 等元素添加 **过渡动画**。
+* 使用 `opacity` + `transform` 控制显示/隐藏，而不是 `display:none`。
+* 用 `v-show` 替代 `v-if` 以便能参与过渡动画。
+
+---
+
+### ✅ 完整修改方案
+
+#### 1️⃣ 修改模板
+
+```vue
+<div class="logo">
+  <div class="logo-expanded" v-show="!collapsed">
+    <div class="logo-left">
+      <span class="logo-emoji">🐽</span>
+      <transition name="fade-slide">
+        <span v-show="!collapsed" class="logo-text">小猪智能</span>
+      </transition>
+    </div>
+    <div class="logo-right">
+      <img 
+        :src="sider_collapsed" 
+        alt="Navigation" 
+        class="collapse-icon" 
+        @click="() => (collapsed = !collapsed)"
+      />
+    </div>
+  </div>
+
+  <div class="logo-collapsed" v-show="collapsed">
+    <img 
+      :src="sider_expand" 
+      alt="Navigation" 
+      class="collapse-icon" 
+      @click="() => (collapsed = !collapsed)"
+    />
+  </div>
+</div>
+```
+
+> ✅ 这里用 `v-show` 代替了 `v-if`，避免节点销毁导致动画断层。
+
+---
+
+#### 2️⃣ 添加动画样式
+
+在 `<style scoped>` 里加入以下样式：
+
+```css
+/* 平滑宽度变化 */
+.sider-style {
+ 
+}
+
+
+
+
+
+```
+
+---
+
+### 🎬 效果变化：
+
+* 折叠时：
+
+  * `🐽` 图标保持在中间；
+  * 文本“🐽 小猪智能”渐隐；
+  * 菜单文字逐渐淡出。
+* 展开时：
+
+  * 侧边栏宽度平滑放大；
+  * 文本和菜单标题淡入；
+  * 没有突兀的跳动。
+
+---
+
+### ✅ 最终总结
+
+| 问题              | 原因                   | 解决方案                                        |
+| --------------- | -------------------- | ------------------------------------------- |
+| logoImage 改成 🐽 | 不再使用图片，改 emoji       | 已完成，保留 `<span class="logo-emoji">🐽</span>` |
+| 侧边栏折叠不自然        | DOM 被销毁 + 宽度突变 + 无过渡 | 使用 `v-show` + `transition` + `opacity` 过渡   |
+
+---
+
+是否希望我帮你加上一个 **平滑的整体展开收起动画（包含菜单淡入淡出）** 的完整版本（带动画时序控制和过渡延迟）？这能让整个侧边栏像 Ant Design Pro 一样丝滑。
