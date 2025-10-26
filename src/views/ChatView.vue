@@ -3,8 +3,8 @@
     <!-- 页面顶部标题 -->
     <h1 class="page-title">需要什么帮助吗？</h1>
 
-    <!-- 消息显示区域 -->
-    <!-- <MessagesContainer :messages="messages" /> -->
+  <!-- 消息显示区域 -->
+  <MessagesContainer :messages="messages" />
 
     <!-- 聊天输入组件，带前后图标插槽 -->
     <ChatInput @send="onSend">
@@ -22,52 +22,59 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import ChatInput from '@/components/chatInput/chatInput.vue'
-import MessagesContainer from '@/components/MessagesContainer.vue'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useChatStore } from '@/stores/chat'
+import ChatInput from '@/components/ChatInput/ChatInput.vue'
+import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import sentSvg from '@/assets/svg/send.svg'
 
-// 定义消息类型
-interface Message {
-  text: string
-  isUser: boolean
-  timestamp: Date
-}
-
-// 消息列表状态
-const messages = ref<Message[]>([
-  {
-    text: '您好！我是AI助手，有什么可以帮助您的吗？',
-    isUser: false,
-    timestamp: new Date()
-  }
+// local fallback messages when no chat selected
+const localMessages = ref([
+  { text: '您好！我是AI助手，有什么可以帮助您的吗？', isUser: false, timestamp: new Date() }
 ])
 
-// 发送消息事件处理函数
+const router = useRouter()
+const route = useRoute()
+const chatStore = useChatStore()
+
+// 当前 chat id（如果有）
+const chatId = computed(() => route.params.id as string | undefined)
+
+// 当前显示的消息：如果选中聊天则显示 store 中的消息，否则显示本地默认信息
+const messages = computed(() => {
+  if (chatId.value) {
+    const c = chatStore.getChat(chatId.value)
+    return c ? c.messages.map(m => ({ text: m.text, isUser: true, timestamp: new Date(m.createdAt) })) : []
+  }
+  return localMessages.value
+})
+
+// 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
-  console.log('发送消息：', msg)
-  
-  // 添加用户消息到列表
-  messages.value.push({
-    text: msg,
-    isUser: true,
-    timestamp: new Date()
-  })
-  
-  // 模拟AI回复（实际项目中这里会调用后端API）
-  setTimeout(() => {
-    messages.value.push({
-      text: `我收到了您的消息: "${msg}"。这是一个模拟回复，实际应用中这里会是AI生成的回复内容。`,
-      isUser: false,
-      timestamp: new Date()
-    })
-  }, 1000)
+  if (!msg || !msg.trim()) return
+  const text = msg.trim()
+  if (!chatId.value) {
+    const id = Date.now().toString()
+    // 创建聊天并把用户消息作为首条消息
+    chatStore.addChat({ id, title: text, messages: [{ id: Date.now().toString(), text, createdAt: Date.now() }] })
+    // 跳转到新会话
+    await router.push(`/chat/${id}`)
+    // 模拟 AI 回复
+    setTimeout(() => {
+      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`)
+    }, 800)
+  } else {
+    // 已在聊天中，直接添加消息
+    chatStore.addMessage(chatId.value, text)
+    // 模拟 AI 回复
+    setTimeout(() => {
+      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`)
+    }, 800)
+  }
 }
 
-// 组件挂载时的初始化逻辑
-onMounted(() => {
-  // 可以在这里添加初始化逻辑
-})
+onMounted(() => {})
 </script>
 
 <style scoped>
