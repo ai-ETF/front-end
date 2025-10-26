@@ -1,4 +1,4 @@
-  <script setup lang="ts">
+    <script setup lang="ts">
 /** 组件介绍
  * Sidebar.vue - 侧边栏组件
  * 侧边栏组件，用于显示导航菜单
@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
     {
       key: '1',              // 第一个菜单项的唯一标识
       icon: UserOutlined,    // 使用 UserOutlined 图标组件
-      label: 'AI对话',       // 显示文本
+      label: '新建对话',       // 显示文本
       path: '/chat'          // 对应的路由路径
     },
     {
@@ -75,6 +75,9 @@ const chatStore = useChatStore()
 // 初始化一个名为selectedKeys 的响应数据，类型为字符串数组，默认值为 ['1']
 const selectedKeys = ref<string[]>(['1'])
 
+// 控制动态聊天栏内部折叠状态
+const chatCollapsed = ref(false)
+
 // 处理菜单项点击事件
 const handleMenuClick = (item: MenuItem) => {
   // 更新选中的菜单项
@@ -88,6 +91,11 @@ const handleMenuClick = (item: MenuItem) => {
   if (item.path) {
     router.push(item.path)
   }
+}
+
+// 切换动态聊天栏的折叠状态
+const toggleChatList = () => {
+  chatCollapsed.value = !chatCollapsed.value
 }
 </script>
 
@@ -103,7 +111,6 @@ const handleMenuClick = (item: MenuItem) => {
       :collapsed="props.collapsed" 
       @toggle="() => emit('update:collapsed', !props.collapsed)"
     />
-
     <!-- 自定义菜单区域 -->
     <div class="custom-menu">
       <!-- 
@@ -145,22 +152,27 @@ const handleMenuClick = (item: MenuItem) => {
           </div>
         </transition>
       </div>
-      <!-- 动态聊天列表 -->
-      <div class="chat-list" v-if="chatStore.chats.length">
-        <div class="chat-list-title">我的会话</div>
+
+    </div>
+    
+    <!-- 动态聊天列表 -->
+    <div v-if="!props.collapsed && chatStore.chats.length" class="chat-list">
+      <div class="chat-list-title" @click="toggleChatList">
+        <span class="toggle-icon">{{ chatCollapsed ? '▶' : '▼' }}</span>
+        我的会话
+      </div>
+      
+      <div v-if="!chatCollapsed">
         <div
           v-for="c in chatStore.chats"
           :key="c.id"
-          class="menu-item chat-item"
+          class="chat-list-item chat-item"
           @click="() => router.push(`/chat/${c.id}`)"
         >
-          <div class="menu-icon">
-            <!-- 可以放一个小点或图标 -->
-            <span style="width:12px;height:12px;background:#1890ff;border-radius:50%;display:inline-block"></span>
-          </div>
-          <div class="menu-label">{{ c.title || '新建会话' }}</div>
+          <div class="menu-label chat-label">{{ c.title || '新建会话' }}</div>
         </div>
       </div>
+    
     </div>
   </div>
 </template>
@@ -223,7 +235,11 @@ const handleMenuClick = (item: MenuItem) => {
   
   /* 菜单区域的内边距 */
   padding: 8px 0;
+
+  /* 添加底部边框 */
+  /* border-bottom: 1px solid #e8e8e8; */
 }
+
 
 /* 
  * ======================================================
@@ -274,7 +290,7 @@ const handleMenuClick = (item: MenuItem) => {
  */
 .menu-item.active {
   /* 背景色 */
-  background-color: #efefefef;
+  /* background-color: #efefefef; */
   
   /* 字体颜色 */
   color: black;
@@ -351,4 +367,77 @@ const handleMenuClick = (item: MenuItem) => {
   /* 进入前和离开后的透明度 */
   opacity: 0;
 }
+
+/* 
+ * ======================================================
+ * 动态聊天列表样式
+ * ======================================================
+ */
+
+/* 动态聊天列表容器 */
+.chat-list {
+  margin-top: 8px;
+  padding: 0 8px 8px; /* 内边距留出边距 */
+  /* border-top: 1px solid #e8e8e8; 与菜单区分 */
+  border-top: 1px solid #f0f0f0; /* 分隔线 */
+}
+
+/* 标题栏：可折叠区域 */
+.chat-list-title {
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px; /* 左右对齐菜单项内边距 */
+  cursor: pointer;
+  font-weight: 500;
+  user-select: none;
+  color: #333;
+
+}
+
+/* 折叠/展开图标 */
+.toggle-icon {
+  margin-right: 8px;
+  font-size: 12px;
+}
+
+/* 会话条目容器 */
+.chat-list-item {
+  display: flex;
+  align-items: center;
+  height: 38px; /* 与菜单项高度一致 */
+  padding: 0 16px; /* 左右与菜单对齐 */
+  /* padding: 6 10px; 左右与菜单对齐 */
+  margin: 0px 6px;
+  border-radius: 6px; /* 圆角视觉柔和 */
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* 条目文本 */
+.chat-label {
+  flex: 1; /* 占满剩余空间 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 0px; /* 与菜单图标对齐 */
+}
+
+/* 鼠标悬停高亮 */
+.chat-item:hover {
+  background-color: #f0f0f0; /* 浅灰色背景 */
+  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.05); /* 内阴影增加层次感 */
+  transition: all 0.2s ease;
+}
+
+/* 选中状态 */
+.chat-item.active {
+  background-color: #a84949; /* 中灰色突出选中 */
+  color: #000;
+  font-weight: 500; /* 加粗文字，提高视觉识别度 */
+  box-shadow: inset 2px 0 0 #8c8c8c; /* 左侧深灰色条，高亮选中 */
+  border-radius: 6px; /* 保持圆角一致 */
+  transition: all 0.2s ease;
+}
+
 </style>

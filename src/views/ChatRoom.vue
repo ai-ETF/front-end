@@ -1,7 +1,7 @@
 <template>
   <div class="page">
-  <!-- 消息显示区域 -->
-  <MessagesContainer :messages="messages" />
+    <!-- 消息显示区域 -->
+    <MessagesContainer :messages="messages" />
 
     <!-- 聊天输入组件，带前后图标插槽 -->
     <ChatInput @send="onSend">
@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useChatStore } from '@/stores/chat'
+import { useChatStore, type ChatMessage } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import sentSvg from '@/assets/svg/send.svg'
@@ -42,7 +42,11 @@ const chatId = computed(() => route.params.id as string | undefined)
 const messages = computed(() => {
   if (chatId.value) {
     const c = chatStore.getChat(chatId.value)
-    return c ? c.messages.map(m => ({ text: m.text, isUser: true, timestamp: new Date(m.createdAt) })) : []
+    return c ? c.messages.map((m: ChatMessage) => ({
+      text: m.text,
+      isUser: m.isuser,
+      timestamp: new Date(m.createdAt)
+    })) : []
   }
   return localMessages.value
 })
@@ -50,52 +54,52 @@ const messages = computed(() => {
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
   // 调试：函数被调用，打印原始输入和当前 chatId
-  console.log('[ChatHome] onSend called, msg:', msg, 'chatId:', chatId.value)
+  console.log('[ChatRoom] onSend called, msg:', msg, 'chatId:', chatId.value)
 
   if (!msg || !msg.trim()) {
     // 可能误触了
-    console.log('[ChatHome] empty or whitespace-only message, ignoring.')
+    console.log('[ChatRoom] empty or whitespace-only message, ignoring.')
     return // 如果消息为空或仅包含空白字符则直接返回
   }
 
   const text = msg.trim() // 去除首尾空白并保存为 text
-  console.log('[ChatHome] trimmed text:', text)
+  console.log('[ChatRoom] trimmed text:', text)
 
   if (!chatId.value) { // 如果当前没有选中的聊天（需要新建会话）
     const id = Date.now().toString() // 使用时间戳字符串作为新会话 id
-    console.log('[ChatHome] creating new chat with id:', id)
+    console.log('[ChatRoom] creating new chat with id:', id)
 
     // 创建聊天并把用户消息作为首条消息
     chatStore.addChat({
       id,
-      title: text,
-      messages: [{ id: Date.now().toString(), text, createdAt: Date.now() }]
+      title: text.length > 20 ? text.substring(0, 20) + '...' : text,
+      messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
     })
-    console.log('[ChatHome] added new chat to store:', id)
+    console.log('[ChatRoom] added new chat to store:', id)
 
     // 跳转到新会话
     try {
-      console.log('[ChatHome] navigating to /chat/' + id)
+      console.log('[ChatRoom] navigating to /chat/' + id)
       await router.push(`/chat/${id}`) // 跳转到新创建的聊天路由
-      console.log('[ChatHome] navigation success to /chat/' + id)
+      console.log('[ChatRoom] navigation success to /chat/' + id)
     } catch (err) {
-      console.error('[ChatHome] navigation failed:', err)
+      console.error('[ChatRoom] navigation failed:', err)
     }
 
     // 模拟 AI 回复
     setTimeout(() => { // 延迟执行以模拟异步回复
-      console.log('[ChatHome] adding simulated reply to new chat:', id)
-      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`) // 向新会话添加模拟回复消息
+      console.log('[ChatRoom] adding simulated reply to new chat:', id)
+      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`, false) // 向新会话添加模拟回复消息
     }, 800) // 延迟 800 毫秒
   } else {
     // 已在聊天中，直接添加消息
-    console.log('[ChatHome] adding message to existing chat:', chatId.value)
-    chatStore.addMessage(chatId.value, text) // 向当前会话添加用户消息
+    console.log('[ChatRoom] adding message to existing chat:', chatId.value)
+    chatStore.addMessage(chatId.value, text, true) // 向当前会话添加用户消息
 
     // 模拟 AI 回复
     setTimeout(() => { // 延迟执行以模拟异步回复
-      console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
-      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`) // 向当前会话添加模拟回复（使用非空断言）
+      console.log('[ChatRoom] adding simulated reply to existing chat:', chatId.value)
+      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false) // 向当前会话添加模拟回复（使用非空断言）
     }, 800) // 延迟 800 毫秒
   }
 }

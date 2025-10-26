@@ -72,7 +72,7 @@ const onSend = async (msg: string) => {
     chatStore.addChat({
       id,
       title: text,
-      messages: [{ id: Date.now().toString(), text, createdAt: Date.now() }]
+      messages: [{ id: Date.now().toString(), text, createdAt: Date.now() ,isuser: true }]
     })
     console.log('[ChatHome] added new chat to store:', id)
 

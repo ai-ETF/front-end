@@ -217,6 +217,7 @@ const SIDEBAR_COLLAPSED_WIDTH = 52
   
   /* 盒模型设置 */
   box-sizing: border-box;
+  border-bottom: 1px solid #e8e8e8;
 }
 
 /* 
