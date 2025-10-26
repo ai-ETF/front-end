@@ -7,9 +7,9 @@ export interface ChatMessage {
 }
 
 export interface ChatItem {
-  id: string
-  title: string
-  messages: ChatMessage[]
+  id: string // id 和路由有关
+  title: string // 聊天标题
+  messages: ChatMessage[]  // 消息列表
 }
 
 export const useChatStore = defineStore('chat', {

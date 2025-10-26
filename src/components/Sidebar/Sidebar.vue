@@ -274,10 +274,10 @@ const handleMenuClick = (item: MenuItem) => {
  */
 .menu-item.active {
   /* 背景色 */
-  background-color: #1890ff;
+  background-color: #efefefef;
   
   /* 字体颜色 */
-  color: white;
+  color: black;
 }
 
 /* 

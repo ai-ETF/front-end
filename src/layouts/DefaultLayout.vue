@@ -72,9 +72,6 @@ const SIDEBAR_COLLAPSED_WIDTH = 52
         :width="collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH"
         @update:collapsed="onCollapsedChange"
       />
-      <div class="chat-history-container">
-      <span class="chat-history-style"> 聊天 </span>
-      </div>
       <!---->
     </Sider>
 
@@ -281,42 +278,5 @@ const SIDEBAR_COLLAPSED_WIDTH = 52
   /* 折叠时的最小宽度 */
   min-width: 52px !important;
 }
-
-.chat-history-container {
-  /* 整体块与上方菜单区的间距 */
-  margin-top: 12px;
-  padding: 8px 0;
-
-  /* 轻微的分隔线感（上方细线） */
-  border-top: 1px solid #f0f0f0;
-
-  /* 让区域内元素垂直居中、方向一致 */
-  display: flex;
-  align-items: center;
-}
-
-.chat-history-style {
-  /* 与菜单图标对齐 */
-  padding-left: 24px;
-
-  /* 字体风格与菜单文字一致 */
-  font-size: 14px;
-  color: #333;
-
-  /* 稍微增加可点击面积 */
-  padding-top: 6px;
-  padding-bottom: 6px;
-
-  /* 鼠标悬停高亮效果 */
-  border-radius: 6px;
-  transition: all 0.2s ease;
-}
-
-.chat-history-style:hover {
-  background-color: #e6f7ff; /* 淡蓝悬浮底色 */
-  color: #1677ff;            /* Ant Design 蓝色 */
-  cursor: pointer;
-}
-
 
 </style>

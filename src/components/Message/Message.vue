@@ -46,8 +46,8 @@ withDefaults(defineProps<Props>(), {
 }
 
 .user-message .message-content {
-  background-color: #007bff;
-  color: white;
+  background-color: #f4f4f4f4;
+  color: black;
   border-bottom-right-radius: 4px;
 }
 
