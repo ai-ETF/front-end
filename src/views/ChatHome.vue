@@ -3,11 +3,8 @@
     <!-- 页面顶部标题 -->
     <h1 class="page-title">需要什么帮助吗？</h1>
 
-  <!-- 消息显示区域 -->
-  <!-- <MessagesContainer :messages="messages" /> -->
-
     <!-- 聊天输入组件，带前后图标插槽 -->
-    <ChatInput @send="onSend">
+    <ChatInput ref="chatInputRef" @send="onSend">
       <!-- 左边插槽 -->
       <template #prefix>
         <span>＋</span>
@@ -15,7 +12,7 @@
 
       <!-- 右边插槽 -->
       <template #suffix>
-        <img :src="sentSvg" alt="发送按钮" />
+        <img :src="sentSvg" alt="发送按钮" @click="handleSendClick"/>
       </template>
     </ChatInput>
   </div>
@@ -26,8 +23,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
-import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import sentSvg from '@/assets/svg/send.svg'
+
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 
 // local fallback messages when no chat selected
 const localMessages = ref([
@@ -37,6 +35,14 @@ const localMessages = ref([
 const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
+
+// 添加发送按钮点击处理函数
+const handleSendClick = () => {
+  if (chatInputRef.value && chatInputRef.value.message.trim()) {
+    onSend(chatInputRef.value.message)
+    chatInputRef.value.message = ''
+  }
+}
 
 // 当前 chat id（如果有）
 const chatId = computed(() => route.params.id as string | undefined)

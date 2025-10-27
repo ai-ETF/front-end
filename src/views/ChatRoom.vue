@@ -4,7 +4,7 @@
     <MessagesContainer :messages="messages" />
 
     <!-- 聊天输入组件，带前后图标插槽 -->
-    <ChatInput @send="onSend">
+    <ChatInput ref="chatInputRef" @send="onSend">
       <!-- 左边插槽 -->
       <template #prefix>
         <span>＋</span>
@@ -12,7 +12,7 @@
 
       <!-- 右边插槽 -->
       <template #suffix>
-        <img :src="sentSvg" alt="发送按钮" />
+        <img :src="sentSvg" alt="发送按钮" @click="handleSendClick"/>
       </template>
     </ChatInput>
   </div>
@@ -26,9 +26,28 @@ import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import sentSvg from '@/assets/svg/send.svg'
 
+const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
+
 // local fallback messages when no chat selected
 const localMessages = ref([
-  { text: '您好！我是AI助手，有什么可以帮助您的吗？', isUser: false, timestamp: new Date() }
+  { 
+    id: '1',
+    text: `您好！我是AI助手，有什么可以帮助您的吗？
+    
+支持的格式包括：
+1. **加粗文本**
+2. *斜体文本*
+3. \`行内代码\`
+4. 代码块:
+\`\`\`javascript
+console.log('Hello, World!');
+\`\`\`
+5. [链接](https://example.com)
+6. 列表项
+`,
+    isUser: false, 
+    timestamp: new Date() 
+  }
 ])
 
 const router = useRouter()
@@ -43,8 +62,9 @@ const messages = computed(() => {
   if (chatId.value) {
     const c = chatStore.getChat(chatId.value)
     return c ? c.messages.map((m: ChatMessage) => ({
+      id: m.id,
       text: m.text,
-      isUser: m.isuser,
+      isUser: m.isuser !== undefined ? m.isuser: false,
       timestamp: new Date(m.createdAt)
     })) : []
   }
@@ -86,21 +106,129 @@ const onSend = async (msg: string) => {
       console.error('[ChatRoom] navigation failed:', err)
     }
 
-    // 模拟 AI 回复
+    // 模拟 AI 回复（包含Markdown格式）
     setTimeout(() => { // 延迟执行以模拟异步回复
       console.log('[ChatRoom] adding simulated reply to new chat:', id)
-      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`, false) // 向新会话添加模拟回复消息
+      chatStore.addMessage(id, {
+        id: `ai-${Date.now()}`,
+        text: `收到：${text}（这是模拟回复）
+
+这是带有**Markdown**格式的回复示例：
+
+## 标题示例
+
+这是一个段落，其中包含*斜体*和**粗体**文本。
+
+### 代码示例
+
+\`\`\`python
+def hello_world():
+    print("Hello, World!")
+    return True
+\`\`\`
+
+### 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+- 无序列表项1
+- 无序列表项2
+
+### 链接示例
+
+访问 [GitHub](https://github.com) 获取更多信息。
+
+### 引用示例
+
+> 这是一个引用块
+> 可以跨越多行
+
+### 表格示例
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| A   | B   | C   |
+| D   | E   | F   |
+`,
+        createdAt: Date.now(),
+        isuser: false
+      }) // 向新会话添加模拟回复消息
     }, 800) // 延迟 800 毫秒
   } else {
     // 已在聊天中，直接添加消息
     console.log('[ChatRoom] adding message to existing chat:', chatId.value)
-    chatStore.addMessage(chatId.value, text, true) // 向当前会话添加用户消息
+    
+    // 添加用户消息
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      text,
+      createdAt: Date.now(),
+      isuser: true
+    }
+    chatStore.addMessage(chatId.value, userMessage)
 
-    // 模拟 AI 回复
+    // 模拟 AI 回复（包含Markdown格式）
     setTimeout(() => { // 延迟执行以模拟异步回复
       console.log('[ChatRoom] adding simulated reply to existing chat:', chatId.value)
-      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false) // 向当前会话添加模拟回复（使用非空断言）
+      if (chatId.value) {
+        chatStore.addMessage(chatId.value, {
+          id: `ai-${Date.now()}`,
+          text: `收到：${text}（这是模拟回复）
+
+这是带有**Markdown**格式的回复示例：
+
+## 标题示例
+
+这是一个段落，其中包含*斜体*和**粗体**文本。
+
+### 代码示例
+
+\`\`\`python
+def hello_world():
+    print("Hello, World!")
+    return True
+\`\`\`
+
+### 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+- 无序列表项1
+- 无序列表项2
+
+### 链接示例
+
+访问 [GitHub](https://github.com) 获取更多信息。
+
+### 引用示例
+
+> 这是一个引用块
+> 可以跨越多行
+
+### 表格示例
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| A   | B   | C   |
+| D   | E   | F   |
+`,
+          createdAt: Date.now(),
+          isuser: false
+        })
+      }
     }, 800) // 延迟 800 毫秒
+  }
+}
+
+// 添加发送按钮点击处理函数
+const handleSendClick = () => {
+  if (chatInputRef.value && chatInputRef.value.message.trim()) {
+    onSend(chatInputRef.value.message)
+    chatInputRef.value.message = ''
   }
 }
 
@@ -125,6 +253,7 @@ onMounted(() => {})
   padding: 16px;               /* 页面边距 */
   background-color: #ffffff;   /* 页面背景色，可自定义 */
   gap: 16px;                   /* 子元素间间距 */
+  width:100%
 }
 
 /* ===== 页面标题 ===== */
