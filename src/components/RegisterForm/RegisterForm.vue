@@ -14,14 +14,22 @@
       <div class="input-container">
         <div class="input-group">
           <div class="input-frame">
-            <div class="input-checkbox"></div>
+            <!-- 用户名图标 -->
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
             <input v-model="username" type="text" placeholder="用户名" class="input-field" />
           </div>
         </div>
         
         <div class="input-group">
           <div class="input-frame">
-            <div class="input-checkbox"></div>
+            <!-- 密码图标 -->
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
             <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="密码" class="input-field" />
             <div class="eye-icon" @click="togglePasswordVisibility">
               <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2">
@@ -161,18 +169,11 @@ const handleRegister = async () => {
   width: 100%;
 }
 
-.input-checkbox {
+.input-icon {
   width: 20px;
   height: 20px;
-  border: 2px solid #000000;
-  border-radius: 4px;
   margin-right: 15px;
-}
-
-.right {
-  margin-left: auto;
-  margin-right: 0;
-  cursor: pointer;
+  color: #000000;
 }
 
 .eye-icon {
