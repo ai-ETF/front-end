@@ -215,21 +215,21 @@ const sanitizedContent = computed(() => {
 
 /* 段落、列表、表格、引用等的基础间距和样式 */
 .message-content :deep(p) {
-  margin: 8px 0;
+  margin: 4px 0;
 }
 
 .message-content :deep(ul),
 .message-content :deep(ol) {
-  margin: 8px 0;
+  margin: 4px 0;
   padding-left: 24px;
 }
 
 .message-content :deep(li) {
-  margin: 4px 0;
+  margin: 2px 0;
 }
 
 .message-content :deep(blockquote) {
-  margin: 8px 0;
+  margin: 4px 0;
   padding: 8px 16px;
   border-left: 4px solid #ddd;
   background-color: #f9f9f9;
