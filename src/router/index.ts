@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import ChatView from '@/views/ChatView.vue'
+import ChatHome from '@/views/ChatHome.vue'     // 初始页
+import ChatRoom from '@/views/ChatRoom.vue'     // 聊天详情页
 import FilesView from '@/views/FilesView.vue'
 
 const router = createRouter({
@@ -9,28 +9,25 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/chat',
       component: DefaultLayout,
+      redirect: '/chat',
       children: [
         {
-          path: '/chat',
-          name: 'chat',
-          component: ChatView,
+          path: 'chat',              // /chat
+          name: 'chat-home',
+          component: ChatHome,
         },
         {
-          path: '/files',
+          path: 'chat/:id',          // /chat/123
+          name: 'chat-room',
+          component: ChatRoom,
+        },
+        {
+          path: 'files',             // /files
           name: 'files',
           component: FilesView,
         },
-      ]
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      ],
     },
   ],
 })

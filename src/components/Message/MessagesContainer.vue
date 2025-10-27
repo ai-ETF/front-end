@@ -1,7 +1,7 @@
 <template>
   <div class="messages-container" ref="containerRef">
     <Message
-      v-for="(message, index) in messages"
+      v-for="(message, index) in formattedMessages"
       :key="index"
       :text="message.text"
       :is-user="message.isUser"
@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUpdated } from 'vue'
+import { ref, onMounted, onUpdated, computed } from 'vue'
 import Message from './Message.vue'
 
 interface Message {
@@ -24,9 +24,24 @@ interface Props {
   messages: Message[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+// 添加调试日志
+console.log('MessagesContainer received messages:', props.messages);
 
 const containerRef = ref<HTMLElement | null>(null)
+
+const formattedMessages = computed(() => {
+  const formatted = props.messages.map(msg => ({
+    text: msg.text,
+    isUser: msg.isUser,
+    timestamp: msg.timestamp || new Date()
+  }));
+  
+  // 添加调试日志
+  console.log('Formatted messages:', formatted);
+  return formatted;
+})
 
 const scrollToBottom = () => {
   if (containerRef.value) {
