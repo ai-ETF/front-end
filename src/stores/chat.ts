@@ -4,7 +4,7 @@ export interface ChatMessage {
   id: string
   text: string
   createdAt: number
-  isuser: boolean
+  isuser?: boolean
 }
 
 export interface ChatItem {
@@ -25,14 +25,28 @@ export const useChatStore = defineStore('chat', {
       }
       this.chats.push(chat)
     },
-    addMessage(chatId: string, text: string, isuser: boolean) {
+    addMessage(chatId: string, message: string | ChatMessage, isuser?: boolean) {
       const chat = this.chats.find((c) => c.id === chatId)
-      const msg = { id: Date.now().toString(), text, createdAt: Date.now(), isuser }
-      if (chat) {
-        chat.messages.push(msg)
-        // 按创建时间排序
-        chat.messages.sort((a, b) => a.createdAt - b.createdAt)
+      if (!chat) return
+      
+      let newMessage: ChatMessage
+      
+      if (typeof message === 'string') {
+        // 保持向后兼容性
+        newMessage = {
+          id: Date.now().toString(),
+          text: message.trim(),
+          createdAt: Date.now(),
+          isuser: isuser
+        }
+      } else {
+        // 如果传入的是对象，则直接使用
+        newMessage = message
       }
+      
+      chat.messages.push(newMessage)
+      // 按创建时间升序排序（从旧到新）
+      chat.messages.sort((a, b) => a.createdAt - b.createdAt)
     },
     getChat(chatId: string) {
       return this.chats.find((c) => c.id === chatId)

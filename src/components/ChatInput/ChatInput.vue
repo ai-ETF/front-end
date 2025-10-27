@@ -26,12 +26,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, nextTick } from 'vue'
+import { ref, defineEmits, nextTick, defineExpose } from 'vue'
 
 // 向父组件发出事件
 const emit = defineEmits(['send'])
 const message = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+// 暴露message变量给父组件访问
+defineExpose({
+  message
+})
 
 // 发送逻辑（点击或回车）
 const handleSend = (event: KeyboardEvent) => {
