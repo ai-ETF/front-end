@@ -110,7 +110,7 @@ const handleInput = () => {
   resize: none;              /* 禁止用户手动拖动调整大小 */
   border: none;              /* 去掉默认边框 */
   outline: none;             /* 去掉点击时的蓝色边框 */
-  min-height: 32px;          /* 最小高度，可根据需要调节 */
+  min-height: 22px;          /* 最小高度，可根据需要调节 */
   line-height: 1.4;          /* 每行文字高度，影响输入框行距 */
   padding: 4px;              /* 内边距，控制文字和边框的间距 */
   background: transparent;   /* 背景透明，显示父容器背景 */
