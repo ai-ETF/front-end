@@ -1,44 +1,49 @@
 <template>
   <div class="auth-container">
-    <div class="card">
-      <div class="logo">
-        <span class="dot red"></span>
-        <span class="dot red"></span>
-        <span class="logo-text">小E助手</span>
-      </div>
+    <!-- 品牌标识移到左上角 -->
+    <div class="logo">
+      <span class="dot red"></span>
+      <span class="dot red"></span>
+      <span class="logo-text">小E助手</span>
+    </div>
+    
+    <div class="content">
       <h1 class="title">创建账户</h1>
       <p class="subtitle">设置小E的密码以继续</p>
       
-      <div class="input-group">
-        <div class="input-frame">
-          <div class="input-checkbox"></div>
-          <input v-model="username" type="text" placeholder="用户名" class="input-field" />
-        </div>
-      </div>
-      
-      <div class="input-group">
-        <div class="input-frame">
-          <div class="input-checkbox"></div>
-          <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="密码" class="input-field" />
-          <div class="input-checkbox right" @click="togglePasswordVisibility">
-            <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-            </svg>
-            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
+      <div class="input-container">
+        <div class="input-group">
+          <div class="input-frame">
+            <div class="input-checkbox"></div>
+            <input v-model="username" type="text" placeholder="用户名" class="input-field" />
           </div>
         </div>
+        
+        <div class="input-group">
+          <div class="input-frame">
+            <div class="input-checkbox"></div>
+            <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="密码" class="input-field" />
+            <div class="eye-icon" @click="togglePasswordVisibility">
+              <svg v-if="showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 继续按钮 -->
+        <button @click="handleRegister" class="continue-btn">继续</button>
       </div>
       
       <div class="terms-text">
         <router-link to="/terms" class="link-terms">使用条款</router-link> | 
         <router-link to="/privacy" class="link-terms">隐私协议</router-link>
       </div>
-      <!-- 继续按钮 -->
-      <button @click="handleRegister" class="continue-btn">继续</button>
     </div>
   </div>
 </template>
@@ -77,26 +82,22 @@ const handleRegister = async () => {
 <style scoped>
 .auth-container {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   background-color: #ffffff;
   padding: 20px;
+  position: relative;
 }
 
-.card {
-  width: 100%;
-  max-width: 500px;
-  border: 2px solid #000000;
-  border-radius: 20px;
-  padding: 40px;
-  box-sizing: border-box;
-}
-
+/* 品牌标识定位到左上角 */
 .logo {
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
+  position: absolute;
+  top: 20px;
+  left: 20px;
 }
 
 .dot {
@@ -114,8 +115,16 @@ const handleRegister = async () => {
   font-family: sans-serif;
 }
 
+.content {
+  display: flex;
+  flex-direction: column; 
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
+}
+
 .title {
-  font-size: 28px;
+  font-size: 36px;
   text-align: center;
   margin-bottom: 10px;
   font-family: sans-serif;
@@ -123,14 +132,22 @@ const handleRegister = async () => {
 }
 
 .subtitle {
-  font-size: 16px;
+  font-size: 20px;
   text-align: center;
   margin-bottom: 30px;
   color: #666666;
   font-family: sans-serif;
 }
 
+.input-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .input-group {
+  width: 100%;
   margin-bottom: 20px;
 }
 
@@ -139,8 +156,9 @@ const handleRegister = async () => {
   align-items: center;
   border: 2px solid #000000;
   border-radius: 25px;
-  height: 50px;
-  padding: 0 15px;
+  height: 60px;
+  padding: 0 20px;
+  width: 100%;
 }
 
 .input-checkbox {
@@ -152,6 +170,12 @@ const handleRegister = async () => {
 }
 
 .right {
+  margin-left: auto;
+  margin-right: 0;
+  cursor: pointer;
+}
+
+.eye-icon {
   margin-left: auto;
   margin-right: 0;
   cursor: pointer;
@@ -169,7 +193,7 @@ const handleRegister = async () => {
 
 .continue-btn {
   width: 100%;  
-  padding: 14px; 
+  height: 60px;
   background-color: #000000; 
   color: #ffffff; 
   border: none; 
