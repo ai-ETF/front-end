@@ -88,17 +88,17 @@ const onSend = async (msg: string) => {
     // 模拟 AI 回复
     setTimeout(() => { // 延迟执行以模拟异步回复
       console.log('[ChatHome] adding simulated reply to new chat:', id)
-      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`) // 向新会话添加模拟回复消息
+      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`, false) // 向新会话添加模拟回复消息
     }, 800) // 延迟 800 毫秒
   } else {
     // 已在聊天中，直接添加消息
     console.log('[ChatHome] adding message to existing chat:', chatId.value)
-    chatStore.addMessage(chatId.value, text) // 向当前会话添加用户消息
+    chatStore.addMessage(chatId.value, text, true) // 向当前会话添加用户消息
 
     // 模拟 AI 回复
     setTimeout(() => { // 延迟执行以模拟异步回复
       console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
-      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`) // 向当前会话添加模拟回复（使用非空断言）
+      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false) // 向当前会话添加模拟回复（使用非空断言）
     }, 800) // 延迟 800 毫秒
   }
 }
