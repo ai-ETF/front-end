@@ -13,9 +13,9 @@
  * 加号图标样式
  */
 .plus-logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; /* 使用 flex 布局 */
+  align-items: center; /* 垂直居中 */
+  justify-content: center; /* 居中 */
   width: 40px;
   height: 40px;
   border-radius: 50%;
