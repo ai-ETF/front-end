@@ -97,15 +97,15 @@ const handleInput = () => {
 
 /* ===== 输入框外层容器 ===== */
 .input-wrapper {
-  width: 770px;              /* 固定宽度，可根据需求调整 */
-  min-width: 300px;           /* 最小宽度，避免窗口过小时太窄 */
+  width: 768px;              /* 修改为指定宽度768px */
+  height: 55.99px;           /* 修改为指定高度55.99px */
+  min-width: 300px;          /* 最小宽度，避免窗口过小时太窄 */
   display: flex;             /* 使用 flex 布局，让子元素水平排列 */
-  align-items: flex-end;     /* 垂直方向贴底部（图标和输入框底对齐） */
+  align-items: center;       /* 垂直居中 */
   background: #fff;          /* 背景白色 */
   border: 1px solid #ddd;    /* 边框颜色为淡灰色 */
   border-radius: 40px;       /* 圆角大小，可根据喜好调节 */
-  padding: 4px 12px;         /* 内边距：上下4px，左右12px */
-  min-height: 20px;          /* 最小高度，保证输入框不会塌陷 */
+  padding: 0 16px;           /* 调整内边距 */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 微小阴影，增加立体感 */
 }
 
@@ -115,12 +115,12 @@ const handleInput = () => {
   resize: none;              /* 禁止用户手动拖动调整大小 */
   border: none;              /* 去掉默认边框 */
   outline: none;             /* 去掉点击时的蓝色边框 */
-  min-height: 22px;          /* 最小高度，可根据需要调节 */
+  height: 36px;              /* 设置固定高度 */
   line-height: 1.4;          /* 每行文字高度，影响输入框行距 */
-  padding: 4px;              /* 内边距，控制文字和边框的间距 */
+  padding: 8px;              /* 内边距 */
   background: transparent;   /* 背景透明，显示父容器背景 */
   font-family: inherit;      /* 继承父元素字体 */
-  font-size: 15px;           /* 字号，可调整文字大小 */
+  font-size: 16px;           /* 字号 */
   overflow-y: hidden;        /* 默认隐藏垂直滚动，超过内容时通过 JS 控制 */
 }
 
@@ -129,8 +129,8 @@ const handleInput = () => {
   display: flex;             /* 使用 flex 居中图标 */
   align-items: center;       /* 垂直居中 */
   justify-content: center;   /* 水平居中 */
-  width: 28px;               /* 容器宽度，可调整图标大小 */
-  height: 28px;              /* 容器高度，可调整图标大小 */
+  width: 40px;               /* 增大容器宽度 */
+  height: 40px;              /* 增大容器高度 */
   border-radius: 50%;        /* 圆形容器 */
   cursor: pointer;           /* 鼠标悬停显示手型 */
   transition: background 0.2s; /* 背景变化过渡动画 */
@@ -143,18 +143,17 @@ const handleInput = () => {
 
 /* svg 图标大小和颜色 */
 .coin svg {
-  width: 18px;               /* 图标宽度 */
-  height: 18px;              /* 图标高度 */
+  width: 24px;               /* 增大图标宽度 */
+  height: 24px;              /* 增大图标高度 */
   color: #555;               /* 图标颜色，可根据主题调整 */
 }
 
 /* ===== 左右间距控制 ===== */
 .prefix {
-  margin-right: 6px;         /* 前缀图标与输入框之间的间距 */
+  margin-right: 8px;         /* 增大前缀图标与输入框之间的间距 */
 }
 
 .suffix {
-  margin-left: 6px;          /* 后缀图标与输入框之间的间距 */
+  margin-left: 8px;          /* 增大后缀图标与输入框之间的间距 */
 }
-
 </style>

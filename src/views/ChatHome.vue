@@ -7,7 +7,7 @@
     <ChatInput ref="chatInputRef" @send="onSend">
       <!-- 左边插槽 -->
       <template #prefix>
-        <span>＋</span>
+        <PlusLogo />
       </template>
 
       <!-- 右边插槽 -->
@@ -23,6 +23,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
+import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
 import sentSvg from '@/assets/svg/send.svg'
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
@@ -144,8 +145,8 @@ onMounted(() => {})
 }
 
 /* ===== ChatInput 容器宽度限制 ===== */
-ChatInput {
+.chat-input {
   width: 100%;                 /* 占满页面宽度 */
-  max-width: 6800px;            /* 最大宽度限制 */
+  max-width: 680px;             /* 最大宽度限制，合理值 */
 }
 </style>
