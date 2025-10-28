@@ -157,7 +157,7 @@ const handleInput = () => {
   padding: 0; /* 移除所有padding，使用line-height控制垂直间距 */
   background: transparent; /* 背景透明 */
   font-family: inherit; /* 继承父元素字体 */
-  font-size: 16px; /* 字体大小 */
+  font-size: 17px; /* 字体大小 */
   line-height: 24px; /* 行高等于容器高度，确保单行文本垂直居中 */
   overflow-y: auto; /* 超出时显示滚动条 */
   text-align: left;    /* 文本左对齐 */
@@ -170,7 +170,7 @@ const handleInput = () => {
 .input-field::placeholder {
   color: #999;
   text-align: left;       /* placeholder也居中 */
-  font-size: 16px; /* 稍微小一点的字体 */
+  font-size: 17px; /* 稍微小一点的字体 */
   letter-spacing: 0.2px; /* 轻微字间距 */
   transition: color 0.3s ease;
   line-height: 1.5;         /* 与输入框行高一致 */
