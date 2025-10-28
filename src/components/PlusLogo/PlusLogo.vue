@@ -35,16 +35,16 @@
 
 /* 水平线 */
 .plus-logo::before {
-  width: 20px;
-  height: 4px;
-  border-radius: 2px;
+  width: 18px;
+  height: 2.0px;
+  border-radius: 1.5px;
 }
 
 /* 垂直线 */
 .plus-logo::after {
-  width: 4px;
-  height: 20px;
-  border-radius: 2px;
+  width: 2.5px;
+  height: 18px;
+  border-radius: 1.5px;
 }
 
 /* 悬停时显示灰色背景 */
@@ -54,10 +54,10 @@
 
 /* 悬停时加号变粗一点 */
 .plus-logo:hover::before {
-  height: 5px;
+  height: 3px;
 }
 
 .plus-logo:hover::after {
-  width: 5px;
+  width: 3px;
 }
 </style>

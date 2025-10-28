@@ -97,31 +97,32 @@ const handleInput = () => {
 
 /* ===== 输入框外层容器 ===== */
 .input-wrapper {
-  width: 768px;              /* 修改为指定宽度768px */
-  height: 55.99px;           /* 修改为指定高度55.99px */
-  min-width: 300px;          /* 最小宽度，避免窗口过小时太窄 */
-  display: flex;             /* 使用 flex 布局，让子元素水平排列 */
-  align-items: center;       /* 垂直居中 */
-  background: #fff;          /* 背景白色 */
-  border: 1px solid #ddd;    /* 边框颜色为淡灰色 */
-  border-radius: 40px;       /* 圆角大小，可根据喜好调节 */
-  padding: 0 16px;           /* 调整内边距 */
+  width: 100%;              /* 改为100%宽度以充分利用可用空间 */
+  min-width: 500px;         /* 设置更大的最小宽度 */
+  max-width: 800px;         /* 设置最大宽度 */
+  height: 63px;          /* 保持指定高度55.99px */
+  display: flex;            /* 使用 flex 布局，让子元素水平排列 */
+  align-items: center;      /* 垂直居中 */
+  background: #fff;         /* 背景白色 */
+  border: 1px solid #ddd;   /* 边框颜色为淡灰色 */
+  border-radius: 40px;      /* 圆角大小，可根据喜好调节 */
+  padding: 0 16px;          /* 调整内边距 */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 微小阴影，增加立体感 */
 }
 
 /* ===== 输入框本体 ===== */
 .input-field {
-  flex: 1;                   /* 占满剩余空间 */
-  resize: none;              /* 禁止用户手动拖动调整大小 */
-  border: none;              /* 去掉默认边框 */
-  outline: none;             /* 去掉点击时的蓝色边框 */
-  height: 36px;              /* 设置固定高度 */
-  line-height: 1.4;          /* 每行文字高度，影响输入框行距 */
-  padding: 8px;              /* 内边距 */
-  background: transparent;   /* 背景透明，显示父容器背景 */
-  font-family: inherit;      /* 继承父元素字体 */
-  font-size: 16px;           /* 字号 */
-  overflow-y: hidden;        /* 默认隐藏垂直滚动，超过内容时通过 JS 控制 */
+  flex: 1;                  /* 占满剩余空间 */
+  resize: none;             /* 禁止用户手动拖动调整大小 */
+  border: none;             /* 去掉默认边框 */
+  outline: none;            /* 去掉点击时的蓝色边框 */
+  height: 36px;             /* 设置固定高度 */
+  line-height: 1.8;         /* 每行文字高度，影响输入框行距 */
+  padding: 8px 4px;         /* 调整内边距，减少左右padding */
+  background: transparent;  /* 背景透明，显示父容器背景 */
+  font-family: inherit;     /* 继承父元素字体 */
+  font-size: 18px;          /* 字号 */
+  overflow-y: hidden;       /* 默认隐藏垂直滚动，超过内容时通过 JS 控制 */
 }
 
 /* ===== 图标容器统一样式（coin） ===== */

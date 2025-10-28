@@ -147,6 +147,7 @@ onMounted(() => {})
 /* ===== ChatInput 容器宽度限制 ===== */
 .chat-input {
   width: 100%;                 /* 占满页面宽度 */
-  max-width: 680px;             /* 最大宽度限制，合理值 */
+  max-width: 800px;            /* 增加最大宽度 */
+  min-width: 500px;            /* 设置最小宽度 */
 }
 </style>
