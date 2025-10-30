@@ -29,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   // 计算属性：检查用户是否已认证
   const isAuthenticated = computed(() => !!user.value)
   
-  // 用户注册
+  // 用户注册（本地存储版本，用于向后兼容）
   const register = (username: string, password: string) => {
     // 检查用户名是否已存在
     const existingUser = users.value.find(user => user.username === username)
@@ -53,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     return newUser
   }
   
-  // 用户登录
+  // 用户登录（本地存储版本，用于向后兼容）
   const login = (username: string, password: string) => {
     // 查找用户
     const foundUser = users.value.find(user => user.username === username)
@@ -78,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
   }
   
-  // 设置用户（用于初始化时恢复状态）
+  // 设置用户（用于初始化时恢复状态或从Supabase同步）
   const setUser = (userData: User | null) => {
     user.value = userData
   }

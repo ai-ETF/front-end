@@ -4,12 +4,6 @@
   </div>
 </template>
 
-<script>
-import RegisterForm from '@/components/RegisterForm/RegisterForm.vue';
-
-export default {
-  components: {
-    RegisterForm,
-  }
-};
+<script setup lang="ts">
+import RegisterForm from '@/components/RegisterForm/RegisterForm.vue'
 </script>
