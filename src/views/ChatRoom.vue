@@ -7,7 +7,7 @@
     <ChatInput ref="chatInputRef" @send="onSend">
       <!-- 左边插槽 -->
       <template #prefix>
-        <span>＋</span>
+        <PlusLogo />
       </template>
 
       <!-- 右边插槽 -->
@@ -24,6 +24,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useChatStore, type ChatMessage } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
+import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
 import sentSvg from '@/assets/svg/send.svg'
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
