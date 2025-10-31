@@ -2,8 +2,9 @@
   <div class="page-container">
     <!-- 品牌标识移到左上角 -->
     <div class="logo">
-      <span class="dot red"></span>
-      <span class="dot red"></span>
+      <!-- 创建了一个新的独立组件 PigLogo.vue，它只包含小猪鼻子图标及其样式和动画效果，去除了原 Logo 组件中的其他元素（如折叠/展开按钮等）。 -->
+      <!-- 在登录表单中使用了这个新创建的 PigLogo 组件，替换了原来的 Logo 组件。 -->
+      <PigLogo />
       <span class="logo-text">小E助手</span>
     </div>
     
@@ -90,6 +91,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
+import PigLogo from '@/components/PigLogo.vue'
 
 const router = useRouter()
 const { register, loading } = useSupabaseAuth()
@@ -171,7 +173,7 @@ const togglePasswordVisibility = () => {
 }
 
 .logo-text {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: bold;
   margin-left: 10px;
   font-family: sans-serif;
