@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@supabase/supabase-js": "^2.76.1",
     "ant-design-vue": "^4.2.6",
     "dompurify": "^3.3.0",
     "highlight.js": "^11.11.1",

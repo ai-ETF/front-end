@@ -29,7 +29,7 @@
             <path d="m26.4275 16.3825-.0013.001a13.0868 13.0868 0 0 0-5.1431-4.1825c-.3754-.1667-.7543-.3142-1.1354-.4454.0128-.0314.0277-.0615.04-.0933a4.83 4.83 0 0 0-2.9861-6.319 5.9368 5.9368 0 0 0-1.9962-.3558c-.0366-.1253-.1165-.6743.58-2.1571L14.3742 2q-.17.236-.3368.4661c-.384.5309-.7549 1.0444-1.1029 1.55a2.1657 2.1657 0 0 0-1.4486-.6771l-1.6316-.1013H9.852l-.0025 0c-.0429-.0025-.0864-.0039-.1293-.0039A2.1877 2.1877 0 0 0 7.54 5.2825l-.1012 1.6344 0 .003 0 .0028A2.1882 2.1882 0 0 0 9.4854 9.23l1.1673.0723a5.1711 5.1711 0 0 0 .47 2.688 13.1954 13.1954 0 0 0-4.2637 2.9C3 18.7883 3 23.06 3 26.4916v2.0706l1.524-1.6163A12.3293 12.3293 0 0 0 5.8548 30h1.9819a10.7091 10.7091 0 0 1-1.9587-4.49l2.2353-2.3708L6.963 26.745l2.03-1.4774c3.5858-2.61 7.8678-3.2093 12.7263-1.7826a4.6276 4.6276 0 0 0 5.2189-1.468c.0441-.0628.0828-.128.1228-.1926a9.6141 9.6141 0 0 1 .1638 1.7454 12.4214 12.4214 0 0 1-1.61 6.43h1.877A14.4022 14.4022 0 0 0 28.87 23.57a12.2666 12.2666 0 0 0-2.4425-7.1875ZM13.8455 5.9257a1.5872 1.5872 0 0 0 1.3983.7068 4.2111 4.2111 0 0 1 1.44.2719 3.17 3.17 0 0 1 1.0279 5.4638l-.4752-.5849-.0032-.004a1.7048 1.7048 0 0 0-3.0235.9865 3.2143 3.2143 0 0 1-1.899-3.5412 8.4815 8.4815 0 0 1 1.4374-3.466 1.642 1.642 0 0 0 .0973.1671Zm3.49 9.2589-.6072.4962a.2675.2675 0 0 1-.376-.038l-.1264-.1549a.2791.2791 0 0 1 .0394-.3927l.6-.49-1.235-1.5158a.362.362 0 1 1 .5611-.4575l3.4546 4.2517a.3619.3619 0 0 1-.1988.5815.3566.3566 0 0 1-.0816.0094.3609.3609 0 0 1-.2806-.1332l-.3441-.4239-1.2215.9971a.2815.2815 0 0 1-.3965-.04l-.5532-.6775a.2786.2786 0 0 1 .04-.3919l1.2275-1.002ZM9.08 7.0184l.1014-1.6342a.5394.5394 0 0 1 .5386-.5061l.0326.001 1.6335.1013a.5387.5387 0 0 1 .5046.5716l-.0073.1182a10.6739 10.6739 0 0 0-.9028 2.0046l-1.3947-.0862a.5407.5407 0 0 1-.5059-.5702ZM25.5944 21.07a2.9883 2.9883 0 0 1-3.4112.8373c-4.5313-1.3305-8.6289-1.0534-12.2124.82l1.9069-5.978-7.203 7.6393a11.67 11.67 0 0 1 3.3532-8.3419 11.4953 11.4953 0 0 1 4.1073-2.6908 5.42 5.42 0 0 0 2.2411 1.2214 4.714 4.714 0 0 0 .5627.12 1.6258 1.6258 0 0 0 .2449 1.6416l.0847.1038a1.6247 1.6247 0 0 0 .2594 1.605l.5532.6777a1.6276 1.6276 0 0 0 2.29.2314l.3314-.2705a1.7079 1.7079 0 0 0 1.9867-2.6535l-1.9427-2.3911a4.88 4.88 0 0 0 .4863-.456 12.449 12.449 0 0 1 1.3829.5181 11.419 11.419 0 0 1 4.5085 3.6838c.9744 1.3402 1.1502 2.7167.4701 3.6824Z" fill="#000000"></path>
             <path id="_Transparent_Rectangle" d="M0 0h32v32H0Z" fill="none"></path>
           </svg>
-          <input v-model="username" type="text" placeholder="用户名" class="input-field" />
+          <input v-model="email" type="email" placeholder="邮箱" class="input-field" />
         </div>
       </div>
       
@@ -40,7 +40,7 @@
             <desc>
               Key Streamline Icon: https://streamlinehq.com
             </desc>
-            <path d="M15.6807 14.5869c3.4901 0 6.3193 -2.8177 6.3193 -6.29346C22 4.81767 19.1708 2 15.6807 2c-3.49 0 -6.3192 2.81767 -6.3192 6.29344 0 1.60994 0.7348 2.78086 0.7348 2.78086l-7.64189 7.6106c-0.34291 0.3415 -0.82298 1.2294 0 2.049l0.88175 0.8782c0.34289 0.2927 1.20503 0.7025 1.91044 0l1.02871 -1.0245c1.02872 1.0245 2.20439 0.4391 2.64527 -0.1464 0.7348 -1.0245 -0.14696 -2.049 -0.14696 -2.049l0.29392 -0.2927c1.41076 1.405 2.64526 0.5854 3.08616 0 0.7348 -1.0245 0 -2.049 0 -2.049 -0.2939 -0.5855 -0.8817 -0.5855 -0.147 -1.3172l0.8818 -0.8782c0.7054 0.5854 2.1554 0.7318 2.7922 0.7318Z" stroke="#000000" stroke-linejoin="round" stroke-width="1.5"></path>
+            <path d="M15.6807 14.5869c3.4901 0 6.3193 -2.8177 6.3193 -6.29346C22 4.81767 19.1708 2 15.6807 2c-3.49 0 -6.3192 2.81767 -6.3192 6.29344 1.60994 1.60994 2.78086 0.7348 2.78086 0.7348l-7.64189 7.6106c-0.34291 0.3415 -0.82298 1.2294 0 2.049l0.88175 0.8782c0.34289 0.2927 1.20503 0.7025 1.91044 0l1.02871 -1.0245c1.02872 1.0245 2.20439 0.4391 2.64527 -0.1464 0.7348 -1.0245 -0.14696 -2.049 -0.14696 -2.049l0.29392 -0.2927c1.41076 1.405 2.64526 0.5854 3.08616 0 0.7348 -1.0245 0 -2.049 0 -2.049 -0.2939 -0.5855 -0.8817 -0.5855 -0.147 -1.3172l0.8818 -0.8782c0.7054 0.5854 2.1554 0.7318 2.7922 0.7318Z" stroke="#000000" stroke-linejoin="round" stroke-width="1.5"></path>
             <path d="M17.8851 8.29353c0 1.21248 -0.9869 2.19537 -2.2044 2.19537 -1.2174 0 -2.2044 -0.98289 -2.2044 -2.19537s0.987 -2.19539 2.2044 -2.19539c1.2175 0 2.2044 0.98291 2.2044 2.19539Z" stroke="#000000" stroke-width="1.5"></path>
           </svg>
           <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="密码" class="input-field" />
@@ -58,8 +58,15 @@
         </div>
       </div>
       
+      <!-- 错误消息显示 -->
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
+      
       <!-- 继续按钮 -->
-      <button @click="handleLogin" class="continue-btn">继续</button>
+      <button @click="handleLogin" :disabled="loading" class="continue-btn">
+        {{ loading ? '登录中...' : '继续' }}
+      </button>
     </div>
     
     <!-- 链接区域 -->
@@ -75,35 +82,44 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import PigLogo from '@/components/PigLogo.vue'
 
-const authStore = useAuthStore()
-const router = useRouter()
 
-const username = ref('')
+const router = useRouter()
+const { login, loading } = useSupabaseAuth()
+
+const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const errorMessage = ref<string | null>(null)
 
 const handleLogin = async () => {
   try {
-    if (!username.value || !password.value) {
-      alert('请填写用户名和密码')
+    if (!email.value || !password.value) {
+      errorMessage.value = '请填写邮箱和密码'
       return
     }
     
-    await authStore.login(username.value, password.value)
-    router.push('/chat')
+    const { user, error } = await login(email.value, password.value)
+    
+    if (error) {
+      errorMessage.value = error
+      return
+    }
+    
+    if (user) {
+      router.push('/chat')
+    }
   } catch (error: any) {
-    alert(error.message)
+    errorMessage.value = error.message || '登录过程中发生错误'
   }
 }
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
-
 </script>
 
 <style scoped>
@@ -205,6 +221,18 @@ const togglePasswordVisibility = () => {
   cursor: pointer;
 }
 
+/* 错误消息 */
+.error-message {
+  color: #e53e3e;
+  background-color: #fef2f2;
+  padding: 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #fed7d7;
+  width: 100%;
+  text-align: center;
+}
+
 /* 底部按钮 */
 .continue-btn {
   width: 100%;
@@ -218,6 +246,11 @@ const togglePasswordVisibility = () => {
   cursor: pointer;
   margin-bottom: 20px;
   height: 60px;
+}
+
+.continue-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .link-text {
