@@ -5,6 +5,7 @@ import FilesView from '@/views/FilesView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import ChatLayout from '@/layouts/ChatLayout.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,35 +15,43 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { requiresAuth: false }
+      // meta: { requiresAuth: false }
     },
     {
       path: '/register',
       name: 'register',
       component: RegisterView,
-      meta: { requiresAuth: false }
+      // meta: { requiresAuth: false }
     },
-    // 原有嵌套路由（需要布局）
+    // 默认布局路由
     {
       path: '/',
       component: DefaultLayout,
       redirect: '/chat',
-      meta: { requiresAuth: false }, // 需要登录
+      // meta: { requiresAuth: false },
       children: [
-        {
-          path: 'chat',
-          name: 'chat-home',
-          component: ChatHome
-        },
-        {
-          path: 'chat/:id',
-          name: 'chat-room',
-          component: ChatRoom
-        },
         {
           path: 'files',
           name: 'files',
           component: FilesView
+        },
+      ],
+    },
+    // 聊天布局路由
+    {
+      path: '/chat',
+      component: ChatLayout,
+      // meta: { requiresAuth: false },
+      children: [
+        {
+          path: '',
+          name: 'chat-home',
+          component: ChatHome
+        },
+        {
+          path: ':id',
+          name: 'chat-room',
+          component: ChatRoom
         },
       ],
     },
