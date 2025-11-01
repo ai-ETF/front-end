@@ -1,18 +1,23 @@
 <template>
   <div class="messages-container" ref="containerRef">
-    <Message
-      v-for="(message, index) in formattedMessages"
-      :key="message.id || index"
-      :text="message.text"
-      :is-user="message.isUser"
-      :timestamp="message.timestamp"
-    />
+    <div v-if="loading" class="loading">加载中...</div>
+    <div v-else-if="error" class="error">错误: {{ error }}</div>
+    <template v-else>
+      <Message
+        v-for="(message, index) in formattedMessages"
+        :key="message.id || index"
+        :text="message.text"
+        :is-user="message.isUser"
+        :timestamp="message.timestamp"
+      />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUpdated, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onUpdated, computed, nextTick, watch, onUnmounted } from 'vue'
 import Message from './Message.vue'
+import { useChatMessages } from '@/composables/useChatMessages'
 
 interface Message {
   id?: string
@@ -22,22 +27,34 @@ interface Message {
 }
 
 interface Props {
-  messages: Message[]
+  chatId?: number | null
+  messages?: Message[]
 }
 
 const props = defineProps<Props>()
 
+const { messages: fetchedMessages, loading, error, fetchMessages } = useChatMessages()
+
 const containerRef = ref<HTMLElement | null>(null)
 
 const formattedMessages = computed(() => {
-  const formatted = props.messages.map((msg, index) => ({
-    id: msg.id || `msg-${index}`,
-    text: msg.text,
-    isUser: msg.isUser,
-    timestamp: msg.timestamp || new Date()
-  }));
+  // 如果传入了外部消息，则使用外部消息
+  if (props.messages && props.messages.length > 0) {
+    return props.messages.map(msg => ({
+      id: msg.id || Date.now().toString() + Math.random(),
+      text: msg.text,
+      isUser: msg.isUser,
+      timestamp: msg.timestamp || new Date()
+    }))
+  }
   
-  return formatted;
+  // 否则使用从服务器获取的消息
+  return fetchedMessages.value.map((msg) => ({
+    id: msg.id.toString(),
+    text: msg.content || '',
+    isUser: msg.role === 'user',
+    timestamp: msg.created_at ? new Date(msg.created_at) : new Date()
+  }))
 })
 
 const scrollToBottom = () => {
@@ -46,10 +63,19 @@ const scrollToBottom = () => {
   }
 }
 
-// 监听格式化后的消息，确保在消息更新后滚动到底部
+// 监听消息，确保在消息更新后滚动到底部
 watch(formattedMessages, () => {
-  scrollToBottom()
+  nextTick(() => {
+    scrollToBottom()
+  })
 }, { deep: true })
+
+// 当聊天ID改变时，获取对应的消息
+watch(() => props.chatId, async (newChatId) => {
+  if (typeof newChatId === 'number') {
+    await fetchMessages(newChatId)
+  }
+}, { immediate: true })
 
 onMounted(() => {
   scrollToBottom()
@@ -88,5 +114,17 @@ onUpdated(() => {
 
 .messages-container::-webkit-scrollbar-thumb:hover {
   background: #888;
+}
+
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 16px;
+}
+
+.error {
+  color: #ff4d4f;
 }
 </style>

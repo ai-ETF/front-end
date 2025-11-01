@@ -9,18 +9,23 @@ import { useAuthStore } from '@/stores/auth'
 
 // 定义用户信息类型接口，用于 TypeScript 类型检查
 interface UserInfo {
-  // 用户 ID，为数字类型
-  id: number
+  // 用户 ID，为字符串类型（UUID）
+  id: string | null
   // 用户邮箱
   email: string
-  // 用户名，可选属性，可以是字符串或 null
+  // 用户名，可选属性
   username?: string | null
+  // 用户创建时间
+  created_at?: string
+  // 用户更新时间
+  updated_at?: string
 }
 
 // 导出认证组合式函数
 export const useSupabaseAuth = () => {
-  // 创建响应式引用，存储当前用户信息（Supabase User 类型）
-  const user = ref<User | null>(null)
+  // 获取认证状态管理的 store 实例
+  const authStore = useAuthStore()
+  
   // 创建响应式引用，存储扩展的用户信息（自定义 UserInfo 类型）
   const userInfo = ref<UserInfo | null>(null)
   // 创建响应式引用，表示当前是否正在加载
@@ -28,11 +33,21 @@ export const useSupabaseAuth = () => {
   // 创建响应式引用，存储错误信息
   const error = ref<string | null>(null)
   
-  // 获取认证状态管理的 store 实例
-  const authStore = useAuthStore()
+  // 计算属性：检查用户是否已认证（如果 user 存在则返回 true）
+  const isAuthenticated = computed(() => authStore.isAuthenticated)
   
-  // 计算属性：检查用户是否已认证（如果 user.value 存在则返回 true）
-  const isAuthenticated = computed(() => !!user.value)
+  // 计算属性：获取当前用户信息
+  const user = computed(() => {
+    if (!authStore.user) return null
+    
+    // 将 store 中的用户信息转换为 Supabase User 格式
+    return {
+      id: authStore.user.id,
+      email: authStore.user.email || '',
+      created_at: authStore.user.created_at,
+      updated_at: authStore.user.updated_at
+    } as User
+  })
   
   // 获取当前用户信息的异步函数
   const getCurrentUser = async () => {
@@ -45,40 +60,38 @@ export const useSupabaseAuth = () => {
       // 如果获取用户时出现错误，则抛出异常
       if (userError) throw userError
       
-      // 将获取到的用户信息存储到响应式引用中
-      user.value = currentUser
+      // 更新本地认证状态存储，保存用户基本信息
+      authStore.setUserFromSupabase(currentUser)
       
       // 如果成功获取到用户信息
       if (currentUser) {
         // 获取用户附加信息（如果有的话）
         const { data: profile, error: profileError } = await supabase
-          .from('profiles') // 从 profiles 表中查询
-          .select('*') // 选择所有字段
-          .eq('id', parseInt(currentUser.id, 10)) // 根据用户 ID 查询，将字符串 ID 转换为数字
-          .single() // 期望只返回单条记录
+          .from('profiles')
+          .select('*')
+          .eq('user_id', currentUser.id)
+        .maybeSingle()    // 期望只返回一条记录
         
-        // 如果成功获取到用户资料且没有错误
+        // 处理用户资料信息
         if (!profileError && profile) {
-          // 设置用户信息，包括从 profiles 表获取的用户名
+          // 如果成功获取到用户资料，使用 profiles 表中的用户名
           userInfo.value = {
-            id: profile.id, // 使用 profile 表中的 ID
-            email: currentUser.email || '', // 使用认证用户的邮箱
-            username: profile.username // 使用 profile 表中的用户名
+            id: profile.user_id,
+            email: currentUser.email || '',
+            username: profile.username,
+            created_at: currentUser.created_at,
+            updated_at: currentUser.updated_at
           }
         } else {
-          // 如果没有获取到用户资料，则只使用基本的认证用户信息
+          // 如果没有获取到用户资料，使用邮箱作为用户名
           userInfo.value = {
-            id: parseInt(currentUser.id, 10), // 将字符串 ID 转换为数字
-            email: currentUser.email || '' // 使用认证用户的邮箱
+            id: currentUser.id,
+            email: currentUser.email || '',
+            username: currentUser.email?.split('@')[0] || currentUser.email || '',
+            created_at: currentUser.created_at,
+            updated_at: currentUser.updated_at
           }
         }
-        
-        // 更新本地认证状态存储，保存用户基本信息
-        authStore.setUser({
-          id: currentUser.id, // 用户 ID（字符串）
-          username: currentUser.email || '', // 使用邮箱作为用户名
-          password: '' // 不存储真实密码，仅占位符
-        })
       }
       
       // 返回当前用户和用户信息
@@ -111,38 +124,36 @@ export const useSupabaseAuth = () => {
       // 如果登录时出现错误，则抛出异常
       if (loginError) throw loginError
       
-      // 将登录成功的用户信息存储到响应式引用中
-      user.value = data.user
+      // 更新本地认证状态存储
+      authStore.setUserFromSupabase(data.user)
       
       // 获取用户附加信息
       const { data: profile, error: profileError } = await supabase
-        .from('profiles') // 从 profiles 表中查询
-        .select('*') // 选择所有字段
-        .eq('id', parseInt(data.user.id, 10)) // 根据用户 ID 查询
-        .single() // 期望只返回单条记录
+        .from('profiles')
+        .select('*')
+        .eq('user_id', data.user.id)
+        .maybeSingle()    // 期望只返回一条记录
       
-      // 如果成功获取到用户资料且没有错误
+      // 处理用户资料信息
       if (!profileError && profile) {
-        // 设置完整的用户信息
+        // 如果成功获取到用户资料，使用 profiles 表中的用户名
         userInfo.value = {
-          id: parseInt(data.user.id, 10), // 将字符串 ID 转换为数字
-          email: data.user.email || '', // 使用认证用户的邮箱
-          username: profile.username // 使用 profile 表中的用户名
+          id: data.user.id,
+          email: data.user.email || '',
+          username: profile.username,
+          created_at: data.user.created_at,
+          updated_at: data.user.updated_at
         }
       } else {
-        // 如果没有获取到用户资料，则只使用基本的认证用户信息
+        // 如果没有获取到用户资料，使用邮箱前缀作为用户名
         userInfo.value = {
-          id: parseInt(data.user.id, 10), // 将字符串 ID 转换为数字
-          email: data.user.email || '' // 使用认证用户的邮箱
+          id: data.user.id,
+          email: data.user.email || '',
+          username: data.user.email?.split('@')[0] || data.user.email || '',
+          created_at: data.user.created_at,
+          updated_at: data.user.updated_at
         }
       }
-      
-      // 更新本地认证状态存储
-      authStore.setUser({
-        id: data.user.id, // 用户 ID（字符串）
-        username: data.user.email || '', // 使用邮箱作为用户名
-        password: '' // 不存储真实密码，仅占位符
-      })
       
       // 返回登录成功的用户信息
       return { user: data.user, userInfo: userInfo.value }
@@ -175,19 +186,18 @@ export const useSupabaseAuth = () => {
       if (signupError) throw signupError
       
       // 将注册成功的用户信息存储到响应式引用中
-      user.value = data.user
-      
+
       // 如果用户成功创建
       if (data.user) {
         // 创建对应的用户资料记录
         const { error: insertError } = await supabase
-          .from('profiles') // 在 profiles 表中插入
+          .from('profiles')
           .insert([
             {
-              id: parseInt(data.user.id, 10), // 将字符串 ID 转换为数字
-              username: username || email, // 使用提供的用户名或邮箱
-              email: email, // 用户邮箱
-              updated_at: new Date().toISOString() // 更新时间
+              user_id: data.user.id,
+              username: username || email,
+              email: email,
+              updated_at: new Date().toISOString()
             }
           ])
           
@@ -198,17 +208,15 @@ export const useSupabaseAuth = () => {
         
         // 设置用户信息
         userInfo.value = {
-          id: parseInt(data.user.id, 10), // 将字符串 ID 转换为数字
-          email: data.user.email || '', // 使用认证用户的邮箱
-          username: username || email // 使用提供的用户名或邮箱
+          id: data.user.id,
+          email: data.user.email || '',
+          username: username || email,
+          created_at: data.user.created_at,
+          updated_at: data.user.updated_at
         }
         
         // 更新本地认证状态存储
-        authStore.setUser({
-          id: data.user.id, // 用户 ID（字符串）
-          username: data.user.email || '', // 使用邮箱作为用户名
-          password: '' // 不存储真实密码，仅占位符
-        })
+        authStore.setUserFromSupabase(data.user)
       }
       
       // 返回注册成功的用户信息
@@ -238,8 +246,7 @@ export const useSupabaseAuth = () => {
       // 如果登出时出现错误，则抛出异常
       if (signoutError) throw signoutError
       
-      // 清空用户信息
-      user.value = null
+      // 清除用户详细信息
       userInfo.value = null
       
       // 清除本地认证状态存储
@@ -265,12 +272,14 @@ export const useSupabaseAuth = () => {
       supabase.auth.onAuthStateChange((event, session) => {
         // 当用户登录时
         if (event === 'SIGNED_IN') {
-          user.value = session?.user || null // 更新用户信息
+          if (session?.user) {
+            authStore.setUserFromSupabase(session.user)
+          }
         } 
         // 当用户登出时
         else if (event === 'SIGNED_OUT') {
-          user.value = null // 清空用户信息
           userInfo.value = null // 清空用户详细信息
+          authStore.logout() // 清除本地存储
         }
       })
       
