@@ -13,6 +13,7 @@
           ref="textareaRef"
           v-model="message"
           class="input-field"
+          :disabled="disabled"
           placeholder="输入消息..."
           @keydown.enter="handleSend"
           @input="handleInput"
@@ -30,6 +31,14 @@
 <script setup lang="ts">
 import { ref, defineEmits, nextTick, defineExpose } from 'vue'
 
+interface Props {
+  disabled?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  disabled: false
+})
+
 // 向父组件发出事件
 const emit = defineEmits(['send'])
 const message = ref('')
@@ -45,7 +54,7 @@ const handleSend = (event: KeyboardEvent) => {
   // 只有在按下 Enter 键且没有按下 Shift 键时发送消息
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault()
-    if (!message.value.trim()) return
+    if (!message.value.trim() || props.disabled) return
     emit('send', message.value)
     message.value = ''
     // 发送消息后重置高度
@@ -166,6 +175,13 @@ const handleInput = () => {
   display: block;
 }
 
+/* 输入框禁用状态样式 */
+.input-field:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
 /* 输入框placeholder样式 */
 .input-field::placeholder {
   color: #999;
@@ -225,6 +241,12 @@ const handleInput = () => {
 /* 鼠标悬停效果 */
 .coin:hover {
   background: #f2f2f2;       /* 悬停时淡灰色背景，可调整 */
+}
+
+/* 禁用状态下的图标 */
+.coin:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* svg 图标大小和颜色 */

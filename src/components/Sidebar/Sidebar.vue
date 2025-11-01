@@ -1,4 +1,4 @@
-    <script setup lang="ts">
+<script setup lang="ts">
 /** 组件介绍
  * Sidebar.vue - 侧边栏组件
  * 侧边栏组件，用于显示导航菜单
@@ -8,6 +8,7 @@ import { ref, withDefaults, defineProps, defineEmits } from 'vue'
 import { useRouter } from 'vue-router'
 import Logo from '@/components/Logo.vue'
 import { useChatStore } from '@/stores/chat'
+import LogoutButton from '@/components/Sidebar/LogoutButton.vue'
 
 // 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
 // TODO：未来要考虑修改
@@ -174,6 +175,9 @@ const toggleChatList = () => {
       </div>
     
     </div>
+
+    <!-- 登出按钮 -->
+    <LogoutButton :collapsed="props.collapsed" />
   </div>
 </template>
 
@@ -438,6 +442,12 @@ const toggleChatList = () => {
   box-shadow: inset 2px 0 0 #8c8c8c; /* 左侧深灰色条，高亮选中 */
   border-radius: 6px; /* 保持圆角一致 */
   transition: all 0.2s ease;
+}
+
+/* 登出按钮容器 */
+.logout-button-container {
+  margin-top: auto;
+  padding: 8px;
 }
 
 </style>

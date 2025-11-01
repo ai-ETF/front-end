@@ -1,4 +1,6 @@
+<!-- 注释：这是一个 Vue 单文件组件，用于聊天主页 -->
 <template>
+  <!-- 页面根容器 -->
   <div class="page">
     <!-- 页面顶部标题 -->
     <h1 class="page-title">需要什么帮助吗？</h1>
@@ -19,98 +21,149 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+/* 导入 Vue 的 ref、onMounted、computed 等 API */
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+/* 导入 Vue Router 的 useRouter 和 useRoute 用于路由管理 */
 import { useRouter, useRoute } from 'vue-router'
+/* 导入聊天状态管理 store */
 import { useChatStore } from '@/stores/chat'
+/* 导入聊天输入组件 */
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
+/* 导入加号 Logo 组件 */
 import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
+/* 导入发送按钮 SVG 图标 */
 import sentSvg from '@/assets/svg/send.svg'
+/* 导入 useChatMessages 组合式函数，用于与 Supabase 进行数据交互 */
+import { useChatMessages } from '@/composables/useChatMessages'
+/* 导入 useSupabaseAuth 组合式函数，用于检查用户认证状态 */
+import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 
+/* 创建对 ChatInput 组件实例的引用，用于直接访问组件内部属性和方法 */
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 
-// local fallback messages when no chat selected
-const localMessages = ref([
-  { text: '您好！我是AI助手，有什么可以帮助您的吗？', isUser: false, timestamp: new Date() }
-])
-
+/* 获取路由实例，用于编程式导航 */
 const router = useRouter()
+/* 获取当前路由信息 */
 const route = useRoute()
+/* 获取聊天状态管理实例 */
 const chatStore = useChatStore()
-
-// 添加发送按钮点击处理函数
+/* 获取聊天消息管理实例，用于与 Supabase 交互 */
+const { createChat, sendMessage } = useChatMessages()
+/* 获取认证状态管理实例，用于检查用户是否已登录 */
+const { isAuthenticated } = useSupabaseAuth()
+/* 处理发送按钮点击事件 */
 const handleSendClick = () => {
+  /* 检查输入框引用是否存在且有内容 */
   if (chatInputRef.value && chatInputRef.value.message.trim()) {
+    /* 调用发送消息函数 */
     onSend(chatInputRef.value.message)
+    /* 清空输入框内容 */
     chatInputRef.value.message = ''
   }
 }
 
 // 当前 chat id（如果有）
+/* 计算属性：获取当前聊天 ID */
 const chatId = computed(() => route.params.id as string | undefined)
 
-// 当前显示的消息：如果选中聊天则显示 store 中的消息，否则显示本地默认信息
-const messages = computed(() => {
-  if (chatId.value) {
-    const c = chatStore.getChat(chatId.value)
-    return c ? c.messages.map(m => ({ text: m.text, isUser: true, timestamp: new Date(m.createdAt) })) : []
-  }
-  return localMessages.value
-})
-
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
+/* 发送消息处理函数 */
 const onSend = async (msg: string) => {
   // 调试：函数被调用，打印原始输入和当前 chatId
   console.log('[ChatHome] onSend called, msg:', msg, 'chatId:', chatId.value)
 
+  /* 检查消息是否为空或仅包含空白字符 */
   if (!msg || !msg.trim()) {
     // 可能误触了
     console.log('[ChatHome] empty or whitespace-only message, ignoring.')
     return // 如果消息为空或仅包含空白字符则直接返回
   }
 
+  /* 检查用户是否已认证（已登录） */
+  if (!isAuthenticated.value) {
+    // 用户未登录，跳转到登录页面
+    console.log('[ChatHome] user not authenticated, redirecting to login')
+    router.push('/login')
+    return
+  }else{
+    console.log('[ChatHome] user is authenticated')
+  }
+
+  /* 去除消息首尾空白字符 */
   const text = msg.trim() // 去除首尾空白并保存为 text
   console.log('[ChatHome] trimmed text:', text)
 
+  /* 检查当前是否没有选中的聊天（需要新建会话） */
   if (!chatId.value) { // 如果当前没有选中的聊天（需要新建会话）
-    const id = Date.now().toString() // 使用时间戳字符串作为新会话 id
-    console.log('[ChatHome] creating new chat with id:', id)
+    /* 使用 useChatMessages 创建新聊天会话 */
+    const newChat = await createChat(text)
+    
+    if (newChat) {
+      console.log('[ChatHome] created new chat with id:', newChat.id)
+      
+      // 同时在本地 store 中创建聊天记录
+      chatStore.addChat({
+        id: newChat.id.toString(),
+        title: text,
+        messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
+      })
+      
+      // 发送用户消息到 Supabase
+      await sendMessage(newChat.id, text, 'user')
+      
+      // 跳转到新会话
+      try {
+        console.log('[ChatHome] navigating to /chat/' + newChat.id)
+        console.log(`[ChatHome] isAuthenticated: ${isAuthenticated.value}`)
+        
+      // 检查用户是否已登录 
+        await router.push(`/chat/${newChat.id}`) // 跳转到新创建的聊天路由
+        console.log('[ChatHome] navigation success to /chat/' + newChat.id)
+      } catch (err) {
+        console.error('[ChatHome] navigation failed:', err)
+      }
 
-    // 创建聊天并把用户消息作为首条消息
-    chatStore.addChat({
-      id,
-      title: text,
-      messages: [{ id: Date.now().toString(), text, createdAt: Date.now() ,isuser: true }]
-    })
-    console.log('[ChatHome] added new chat to store:', id)
-
-    // 跳转到新会话
-    try {
-      console.log('[ChatHome] navigating to /chat/' + id)
-      await router.push(`/chat/${id}`) // 跳转到新创建的聊天路由
-      console.log('[ChatHome] navigation success to /chat/' + id)
-    } catch (err) {
-      console.error('[ChatHome] navigation failed:', err)
+      // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
+      setTimeout(async () => { // 延迟执行以模拟异步回复
+        console.log('[ChatHome] adding simulated reply to new chat:', newChat.id)
+        // 向 Supabase 发送 AI 回复
+        await sendMessage(newChat.id, `收到：${text}（这是模拟回复）`, 'assistant')
+        // 同时在本地 store 中添加回复
+        chatStore.addMessage(newChat.id.toString(), `收到：${text}（这是模拟回复）`, false)
+      }, 800) // 延迟 800 毫秒
+    } else {
+      console.error('[ChatHome] failed to create new chat')
     }
-
-    // 模拟 AI 回复
-    setTimeout(() => { // 延迟执行以模拟异步回复
-      console.log('[ChatHome] adding simulated reply to new chat:', id)
-      chatStore.addMessage(id, `收到：${text}（这是模拟回复）`, false) // 向新会话添加模拟回复消息
-    }, 800) // 延迟 800 毫秒
   } else {
     // 已在聊天中，直接添加消息
     console.log('[ChatHome] adding message to existing chat:', chatId.value)
-    chatStore.addMessage(chatId.value, text, true) // 向当前会话添加用户消息
+    
+    // 将消息发送到 Supabase
+    const chatIdNum = parseInt(chatId.value)
+    await sendMessage(chatIdNum, text, 'user')
+    
+    // 同时在本地 store 中添加消息
+    chatStore.addMessage(chatId.value, text, true)
 
-    // 模拟 AI 回复
-    setTimeout(() => { // 延迟执行以模拟异步回复
+    // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
+    setTimeout(async () => { // 延迟执行以模拟异步回复
       console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
-      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false) // 向当前会话添加模拟回复（使用非空断言）
+      // 向 Supabase 发送 AI 回复
+      await sendMessage(chatIdNum, `收到：${text}（这是模拟回复）`, 'assistant')
+      // 同时在本地 store 中添加回复
+      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false)
     }, 800) // 延迟 800 毫秒
   }
 }
 
-onMounted(() => {})
+/* 组件挂载时的生命周期钩子 */
+onMounted(() => {
+  console.log('[ChatHome] component mounted')
+})
+
+// 组件卸载时清理定时器
+onUnmounted(() => {})
+
 </script>
 
 <style scoped>

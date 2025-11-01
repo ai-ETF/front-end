@@ -14,23 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      chats: {
+        Row: {
+          created_at: string | null
+          id: number
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          chat_id: number | null
+          content: string | null
+          created_at: string | null
+          id: number
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          chat_id?: number | null
+          content?: string | null
+          created_at?: string | null
+          id?: number
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          chat_id?: number | null
+          content?: string | null
+          created_at?: string | null
+          id?: number
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           email: string
           id: number
           updated_at: string | null
+          user_id: string | null
           username: string | null
         }
         Insert: {
           email: string
           id?: number
           updated_at?: string | null
+          user_id?: string | null
           username?: string | null
         }
         Update: {
           email?: string
           id?: number
           updated_at?: string | null
+          user_id?: string | null
           username?: string | null
         }
         Relationships: []
