@@ -19,15 +19,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore, type ChatMessage } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
 import sentSvg from '@/assets/svg/send.svg'
+import { useChatMessages } from '@/composables/useChatMessages'
+import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
+const { fetchMessages } = useChatMessages()
+const { isAuthenticated } = useSupabaseAuth()
 
 // local fallback messages when no chat selected
 const localMessages = ref([
@@ -71,6 +75,50 @@ const messages = computed(() => {
   }
   return localMessages.value
 })
+
+// 加载聊天历史消息
+const loadChatHistory = async () => {
+  if (chatId.value && isAuthenticated.value) {
+    // 检查聊天是否已经有消息，如果没有则从服务器加载
+    const chat = chatStore.getChat(chatId.value)
+    if (chat && chat.messages.length === 0) {
+      try {
+        const chatMessages = await fetchMessages(parseInt(chatId.value))
+        // 将获取到的消息添加到聊天中
+        chatMessages.forEach(message => {
+          chatStore.addMessage(chatId.value!, {
+            id: message.id.toString(),
+            text: message.content ?? '',
+            createdAt: message.created_at ? new Date(message.created_at).getTime() : Date.now(),
+            isuser: message.role === 'user'
+          })
+        })
+      } catch (error) {
+        console.error('加载聊天历史失败:', error)
+      }
+    }
+  }
+}
+
+// 手动刷新聊天历史
+const refreshChatHistory = async () => {
+  if (chatId.value) {
+    // 清空当前聊天消息
+    const chat = chatStore.getChat(chatId.value)
+    if (chat) {
+      chat.messages = []
+    }
+    // 重新加载
+    await loadChatHistory()
+  }
+}
+
+// 监听聊天ID和认证状态变化，加载对应的历史消息
+watch([chatId, isAuthenticated], ([newChatId, newIsAuth]) => {
+  if (newChatId && newIsAuth) {
+    loadChatHistory()
+  }
+}, { immediate: true })
 
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
@@ -233,7 +281,10 @@ const handleSendClick = () => {
   }
 }
 
-onMounted(() => {})
+onMounted(() => {
+  // 组件挂载时加载聊天历史
+  loadChatHistory()
+})
 </script>
 
 <style scoped>

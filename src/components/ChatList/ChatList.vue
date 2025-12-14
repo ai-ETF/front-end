@@ -2,9 +2,14 @@
   <div class="chat-list">
     <div class="header">
       <h2>聊天历史</h2>
-      <button @click="handleCreateChat" :disabled="creatingChat" class="create-chat-btn">
-        {{ creatingChat ? '创建中...' : '新建聊天' }}
-      </button>
+      <div class="header-actions">
+        <button @click="refreshChats" :disabled="loading" class="refresh-btn">
+          {{ loading ? '刷新中...' : '刷新' }}
+        </button>
+        <button @click="handleCreateChat" :disabled="creatingChat" class="create-chat-btn">
+          {{ creatingChat ? '创建中...' : '新建聊天' }}
+        </button>
+      </div>
     </div>
     
     <div v-if="loading" class="loading">加载中...</div>
@@ -25,12 +30,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useChatMessages } from '@/composables/useChatMessages'
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import { useRouter } from 'vue-router'
+import { useChatStore } from '@/stores/chat'
 
 const { isAuthenticated } = useSupabaseAuth()
+const chatStore = useChatStore()
 
 const emit = defineEmits(['chat-selected'])
 const props = defineProps<{
@@ -67,12 +74,56 @@ const handleCreateChat = async () => {
   }
 }
 
-onMounted(() => {
-  // 只有在用户已登录的情况下才获取聊天列表
+// 手动刷新聊天列表
+const refreshChats = async () => {
+  await loadChatsToStore()
+}
+
+// 获取聊天记录并同步到本地store
+const loadChatsToStore = async () => {
   if (isAuthenticated.value) {
-    fetchChats()
+    const fetchedChats = await fetchChats()
+    console.log(`获取到 ${fetchedChats.length} 条聊天记录。`)
+    // 将远程聊天记录同步到本地store
+    fetchedChats.forEach(chat => {
+      // 检查是否已经存在于本地store中
+      const existingChat = chatStore.getChat(chat.id.toString())
+      if (!existingChat) {
+        // 如果不存在，则添加到本地store
+        chatStore.addChat({
+          id: chat.id.toString(),
+          title: chat.title || '未命名聊天',
+          messages: [] // 消息将在进入具体聊天时加载
+        })
+      }
+    })
+    console.log('聊天记录已同步到本地store。')
+  }else{
+    console.log('用户未认证，无法加载聊天记录。')
+  }
+}
+
+// 监听认证状态变化，当用户登录时自动获取聊天列表
+watch(isAuthenticated, (newVal) => {
+  if (newVal) {
+    loadChatsToStore()
+  }
+}, { immediate: true })
+
+// 组件挂载时检查认证状态
+onMounted(async() => {
+  // 只有在用户已登录的情况下才获取聊天列表
+  console.log('ChatList 组件挂载，检查用户认证状态...')
+  if (isAuthenticated.value) {
+    await loadChatsToStore()
+    console.log('聊天页面加载执行完成。')
   }
 })
+
+// onMounted(() => {
+//   console.log('111111111111111111111')
+// })
+
 </script>
 
 <style scoped>
@@ -91,11 +142,17 @@ onMounted(() => {
 }
 
 .header h2 {
-  margin: 0;
   font-size: 18px;
   font-weight: 600;
+  margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.refresh-btn,
 .create-chat-btn {
   padding: 6px 12px;
   background-color: #1890ff;
@@ -104,25 +161,23 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
-  transition: background-color 0.3s;
 }
 
+.refresh-btn:hover:not(:disabled),
 .create-chat-btn:hover:not(:disabled) {
   background-color: #40a9ff;
 }
 
+.refresh-btn:disabled,
 .create-chat-btn:disabled {
-  background-color: #bfbfbf;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .loading, .error, .no-chats {
   text-align: center;
-  padding: 16px;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 20px;
+  color: #666;
 }
 
 .error {
@@ -140,8 +195,8 @@ onMounted(() => {
 .chat-item {
   padding: 12px;
   border-radius: 8px;
-  margin-bottom: 8px;
   cursor: pointer;
+  margin-bottom: 8px;
   transition: background-color 0.2s;
 }
 
@@ -164,6 +219,6 @@ onMounted(() => {
 
 .chat-date {
   font-size: 12px;
-  color: #888;
+  color: #999;
 }
 </style>
