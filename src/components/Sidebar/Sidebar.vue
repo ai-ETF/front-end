@@ -1,10 +1,91 @@
+<template>
+  <!-- 侧边栏容器 -->
+  <div class="sidebar-container" :style="{ width: props.width + 'px' }">
+    <!-- 
+      使用 Logo 组件
+      :collapsed - 将当前折叠状态传递给 Logo 组件
+      @toggle - 监听 Logo 组件发出的切换事件
+    -->
+    <Logo 
+      :collapsed="props.collapsed" 
+      @toggle="() => emit('update:collapsed', !props.collapsed)"
+    />
+    <!-- 自定义菜单区域 -->
+    <div class="custom-menu">
+      <!-- 
+        遍历菜单项数组，为每个菜单项创建一个菜单项元素
+        v-for - Vue 的列表渲染指令
+        :key - Vue 列表渲染时的唯一标识
+      -->
+      <div
+        v-for="item in props.menuItems"
+        :key="item.key"
+        class="menu-item"
+        :class="{
+          // 当前菜单项是否被选中
+          active: selectedKeys.includes(item.key),
+          
+          // 当前菜单项是否在折叠状态
+          collapsed: props.collapsed
+        }"
+        @click="() => handleMenuClick(item)"
+      >
+        <!-- 菜单项图标部分 -->
+        <div class="menu-icon">
+          <!-- 
+            如果菜单项有图标，则渲染图标组件
+            component 是 Vue 的动态组件，:is 指定要渲染的组件
+          -->
+          <component :is="item.icon" v-if="item.icon" />
+        </div>
+
+        <!-- 菜单项文本部分 -->
+        <!-- 
+          使用 transition 组件实现折叠时的淡入淡出动画
+          name="fade" 对应 CSS 中的 .fade-enter-active 等类名
+        -->
+        <transition name="fade">
+          <!-- 当侧边栏未折叠时显示菜单项文本 -->
+          <div v-if="!props.collapsed" class="menu-label">
+            {{ item.label }}
+          </div>
+        </transition>
+      </div>
+
+    </div>
+    
+    <!-- 动态聊天列表 -->
+    <div v-if="!props.collapsed && chatStore.chats.length" class="chat-list">
+      <div class="chat-list-title" @click="toggleChatList">
+        <span class="toggle-icon">{{ chatCollapsed ? '▶' : '▼' }}</span>
+        我的会话
+      </div>
+      
+      <div v-if="!chatCollapsed">
+        <div
+          v-for="c in chatStore.chats"
+          :key="c.id"
+          class="chat-list-item chat-item"
+          @click="() => router.push(`/chat/${c.id}`)"
+        >
+          <div class="menu-label chat-label">{{ c.title || '新建会话' }}</div>
+        </div>
+      </div>
+    
+    </div>
+
+    <!-- 登出按钮 -->
+    <LogoutButton :collapsed="props.collapsed" />
+  </div>
+</template>
+
 <script setup lang="ts">
 /** 组件介绍
  * Sidebar.vue - 侧边栏组件
  * 侧边栏组件，用于显示导航菜单
  */
 
-import { ref, withDefaults, defineProps, defineEmits } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Logo from '@/components/Logo.vue'
 import { useChatStore } from '@/stores/chat'
@@ -98,88 +179,12 @@ const handleMenuClick = (item: MenuItem) => {
 const toggleChatList = () => {
   chatCollapsed.value = !chatCollapsed.value
 }
+
+onMounted(() => {
+  console.log('Sidebar 组件已挂载，当前折叠状态：', props.collapsed)
+})
 </script>
 
-<template>
-  <!-- 侧边栏容器 -->
-  <div class="sidebar-container" :style="{ width: props.width + 'px' }">
-    <!-- 
-      使用 Logo 组件
-      :collapsed - 将当前折叠状态传递给 Logo 组件
-      @toggle - 监听 Logo 组件发出的切换事件
-    -->
-    <Logo 
-      :collapsed="props.collapsed" 
-      @toggle="() => emit('update:collapsed', !props.collapsed)"
-    />
-    <!-- 自定义菜单区域 -->
-    <div class="custom-menu">
-      <!-- 
-        遍历菜单项数组，为每个菜单项创建一个菜单项元素
-        v-for - Vue 的列表渲染指令
-        :key - Vue 列表渲染时的唯一标识
-      -->
-      <div
-        v-for="item in props.menuItems"
-        :key="item.key"
-        class="menu-item"
-        :class="{
-          // 当前菜单项是否被选中
-          active: selectedKeys.includes(item.key),
-          
-          // 当前菜单项是否在折叠状态
-          collapsed: props.collapsed
-        }"
-        @click="() => handleMenuClick(item)"
-      >
-        <!-- 菜单项图标部分 -->
-        <div class="menu-icon">
-          <!-- 
-            如果菜单项有图标，则渲染图标组件
-            component 是 Vue 的动态组件，:is 指定要渲染的组件
-          -->
-          <component :is="item.icon" v-if="item.icon" />
-        </div>
-
-        <!-- 菜单项文本部分 -->
-        <!-- 
-          使用 transition 组件实现折叠时的淡入淡出动画
-          name="fade" 对应 CSS 中的 .fade-enter-active 等类名
-        -->
-        <transition name="fade">
-          <!-- 当侧边栏未折叠时显示菜单项文本 -->
-          <div v-if="!props.collapsed" class="menu-label">
-            {{ item.label }}
-          </div>
-        </transition>
-      </div>
-
-    </div>
-    
-    <!-- 动态聊天列表 -->
-    <div v-if="!props.collapsed && chatStore.chats.length" class="chat-list">
-      <div class="chat-list-title" @click="toggleChatList">
-        <span class="toggle-icon">{{ chatCollapsed ? '▶' : '▼' }}</span>
-        我的会话
-      </div>
-      
-      <div v-if="!chatCollapsed">
-        <div
-          v-for="c in chatStore.chats"
-          :key="c.id"
-          class="chat-list-item chat-item"
-          @click="() => router.push(`/chat/${c.id}`)"
-        >
-          <div class="menu-label chat-label">{{ c.title || '新建会话' }}</div>
-        </div>
-      </div>
-    
-    </div>
-
-    <!-- 登出按钮 -->
-    <LogoutButton :collapsed="props.collapsed" />
-  </div>
-</template>
 
 <style scoped>
 /**
