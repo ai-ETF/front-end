@@ -65,6 +65,7 @@ router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAuth)) {
     // 如果路由需要认证但用户未认证，则重定向到登录页
     if (!isAuthenticated.value) {
+      console.log(`111111111111111111111111111111111111`)
       next('/login')
     } else {
       // 用户已认证，允许访问

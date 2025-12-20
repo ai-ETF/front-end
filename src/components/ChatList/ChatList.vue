@@ -82,24 +82,56 @@ const refreshChats = async () => {
 // 获取聊天记录并同步到本地store
 const loadChatsToStore = async () => {
   if (isAuthenticated.value) {
-    const fetchedChats = await fetchChats()
-    console.log(`获取到 ${fetchedChats.length} 条聊天记录。`)
-    // 将远程聊天记录同步到本地store
-    fetchedChats.forEach(chat => {
-      // 检查是否已经存在于本地store中
-      const existingChat = chatStore.getChat(chat.id.toString())
-      if (!existingChat) {
-        // 如果不存在，则添加到本地store
-        chatStore.addChat({
-          id: chat.id.toString(),
-          title: chat.title || '未命名聊天',
-          messages: [] // 消息将在进入具体聊天时加载
-        })
-      }
-    })
-    console.log('聊天记录已同步到本地store。')
-  }else{
+    try {
+      const fetchedChats = await fetchChats()
+      console.log(`获取到 ${fetchedChats.length} 条聊天记录。`)
+      
+      // 清空本地存储中不属于远程数据的聊天记录
+      const remoteChatIds = new Set(fetchedChats.map(chat => chat.id.toString()))
+      const localChats = chatStore.getAllChats()
+      
+      // 删除本地有但远程没有的聊天记录
+      localChats.forEach(localChat => {
+        if (!remoteChatIds.has(localChat.id)) {
+          chatStore.deleteChat(localChat.id)
+        }
+      })
+      
+      // 将远程聊天记录同步到本地store
+      fetchedChats.forEach(chat => {
+        // 检查是否已经存在于本地store中
+        const existingChat = chatStore.getChat(chat.id)
+        if (existingChat) {
+          // 如果存在，更新标题和元数据
+          // 注意：这里暂时不做处理，因为我们还没有实现 updateChatMetadata 方法
+        } else {
+          // 如果不存在，则添加到本地store
+          chatStore.addChat({
+            id: chat.id,
+            title: chat.title || '未命名聊天',
+            messages: [] // 消息将在进入具体聊天时加载
+          })
+        }
+      })
+      
+      console.log('聊天记录已同步到本地store。')
+    } catch (err) {
+      console.error('同步聊天记录失败:', err)
+      error.value = '同步聊天记录失败'
+    }
+  } else {
     console.log('用户未认证，无法加载聊天记录。')
+    // 用户未登录时清空本地聊天记录
+    chatStore.chats = []
+  }
+}
+    // 用户登出时清空本地数据
+    chatStore.chats = []
+  }
+}, { immediate: true })
+    // 用户未认证，无法加载聊天记录。
+    // 用户未登录时清空本地聊天记录
+    chatStore.chats = []
   }
 }
 
@@ -107,6 +139,9 @@ const loadChatsToStore = async () => {
 watch(isAuthenticated, (newVal) => {
   if (newVal) {
     loadChatsToStore()
+  } else {
+    // 用户登出时清空本地数据
+    chatStore.chats = []
   }
 }, { immediate: true })
 

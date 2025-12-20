@@ -66,9 +66,31 @@
           v-for="c in chatStore.chats"
           :key="c.id"
           class="chat-list-item chat-item"
+          :class="{ active: routeId === c.id }"
           @click="() => router.push(`/chat/${c.id}`)"
         >
+          <!-- 聊天项左侧内容 -->
           <div class="menu-label chat-label">{{ c.title || '新建会话' }}</div>
+          
+          <!-- 聊天项右侧操作按钮 -->
+          <div class="chat-actions" v-if="routeId === c.id">
+            <img
+              class="action-icon"
+              @click.stop="handleRenameChat(c)"
+              src="@/assets/svg/edit-rename.svg"
+              alt="重命名"
+              width="14"
+              height="14"
+            />
+            <img
+              class="action-icon"
+              @click.stop="handleDeleteChat(c)"
+              src="@/assets/svg/delete.svg"
+              alt="删除"
+              width="14"
+              height="14"
+            />
+          </div>
         </div>
       </div>
     
@@ -77,23 +99,55 @@
     <!-- 登出按钮 -->
     <LogoutButton :collapsed="props.collapsed" />
   </div>
+  
+  <ChatActionsModal
+    v-model:showRenameModal="modalState.showRenameModal"
+    v-model:showDeleteModal="modalState.showDeleteModal"
+    v-model:renameInputValue="modalState.renameInputValue"
+    :delete-chat-item="modalState.deleteChatItem"
+    @confirm-rename="confirmRename"
+    @confirm-delete="confirmDelete"
+  />
+
 </template>
 
 <script setup lang="ts">
-/** 组件介绍
- * Sidebar.vue - 侧边栏组件
- * 侧边栏组件，用于显示导航菜单
- */
-
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, reactive } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import Logo from '@/components/Logo.vue'
 import { useChatStore } from '@/stores/chat'
 import LogoutButton from '@/components/Sidebar/LogoutButton.vue'
+import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
+import { useChatMessages } from '@/composables/useChatMessages'
+// 引入我们新创建的聊天数据同步工具
+import { syncChatsToLocal, syncChatDetailsToLocal } from '@/utils/chatSync'
+import ChatActionsModal from './ChatActionsModal.vue'
 
-// 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
-// TODO：未来要考虑修改
-import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
+const { isAuthenticated, mount } = useSupabaseAuth()
+const { fetchChats, fetchMessages, deleteChat, updateChatTitle } = useChatMessages()
+const router = useRouter()
+const route = useRoute()
+const chatStore = useChatStore()
+
+// 计算属性：将路由参数转换为数字类型
+const routeId = computed((): number | undefined => {
+  const id = route.params.id
+  if (Array.isArray(id)) {
+                  return id.length > 0 ? parseInt(id[0] as string, 10) : undefined
+  }
+  return id ? parseInt(id, 10) : undefined
+})
+
+// 模态框状态管理
+const modalState = reactive({
+  showRenameModal: false,
+  showDeleteModal: false,
+  renameInputValue: '',
+  deleteChatItem: null as any
+})
+
+// 重命名聊天项引用
+const renameChatItem = ref<any>(null)
 
 // 定义菜单项的接口类型：描述每个菜单项应该具有的属性
 interface MenuItem {
@@ -147,8 +201,6 @@ interface Emits {
 // 定义组件可以触发的事件
 // 是不是只要是被定义为defineEmits 的事件，都可以被父组件接收到？
 const emit = defineEmits<Emits>()
-const router = useRouter()
-const chatStore = useChatStore()
 
 /* 
  * 响应式状态（reactive state）
@@ -159,6 +211,7 @@ const selectedKeys = ref<string[]>(['1'])
 
 // 控制动态聊天栏内部折叠状态
 const chatCollapsed = ref(false)
+
 
 // 处理菜单项点击事件
 const handleMenuClick = (item: MenuItem) => {
@@ -180,9 +233,103 @@ const toggleChatList = () => {
   chatCollapsed.value = !chatCollapsed.value
 }
 
+// 处理重命名聊天
+const handleRenameChat = (chat: any) => {
+  renameChatItem.value = chat
+  modalState.renameInputValue = chat.title || ''
+  modalState.showRenameModal = true
+}
+
+// 确认重命名
+const confirmRename = async () => {
+  const newTitle = modalState.renameInputValue.trim()
+  if (newTitle && newTitle !== renameChatItem.value.title) {
+    try {
+      // 调用更新标题函数
+      await updateChatTitle(renameChatItem.value.id, newTitle)
+      
+      // 更新本地 store
+      const localChat = chatStore.getChat(renameChatItem.value.id)
+      if (localChat) {
+        localChat.title = newTitle
+      }
+      
+      console.log('聊天已重命名:', renameChatItem.value.id, newTitle)
+    } catch (error) {
+      console.error('重命名聊天失败:', error)
+    }
+  }
+
+  modalState.showRenameModal = false
+}
+
+// 处理删除聊天
+const handleDeleteChat = (chat: any) => {
+  modalState.deleteChatItem = chat
+  modalState.showDeleteModal = true
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  try {
+    // 添加空值检查
+    if (!modalState.deleteChatItem) {
+      console.error('删除的聊天项不存在')
+      modalState.showDeleteModal = false
+      return
+    }
+    
+    // 调用删除函数
+    await deleteChat(modalState.deleteChatItem.id)
+    
+    // 如果当前正在查看这个聊天，导航到主页
+    if (routeId.value === modalState.deleteChatItem.id) {
+      router.push('/chat')
+    }
+    
+    // 从本地 store 中删除
+    chatStore.deleteChat(modalState.deleteChatItem.id)
+    
+    console.log('聊天已删除:', modalState.deleteChatItem.id)
+  } catch (error) {
+    console.error('删除聊天失败:', error)
+  }
+  
+  modalState.showDeleteModal = false
+}
+
+// 获取聊天记录并同步到本地store
+const loadChatsToStore = async () => {
+  if (isAuthenticated.value) {
+    try {
+      const remoteChats = await fetchChats()
+      
+      syncChatsToLocal(remoteChats)
+      
+      console.log('获取到的聊天记录：', remoteChats)
+    } catch (err) {
+      console.error('同步聊天记录失败:', err)
+    }
+  } else {
+    console.log('用户未认证，无法加载聊天记录。')
+  }
+}
+
 onMounted(() => {
   console.log('Sidebar 组件已挂载，当前折叠状态：', props.collapsed)
+  
+  // 初始化认证状态
+  mount()
+  
+  // 加载聊天记录
+  loadChatsToStore().then(() => {
+    console.log('聊天页面加载执行完成。')
+  })
 })
+
+// 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
+// TODO：未来要考虑修改
+import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 </script>
 
 
@@ -449,6 +596,26 @@ onMounted(() => {
   transition: all 0.2s ease;
 }
 
+/* 聊天操作按钮容器 */
+.chat-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 操作图标样式 */
+.action-icon {
+  width: 14px;
+  height: 14px;
+  color: #666;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.action-icon:hover {
+  color: #333;
+  transform: scale(1.1);
+}
+
 /* 登出按钮容器 */
 .logout-button-container {
   margin-top: auto;
@@ -456,3 +623,6 @@ onMounted(() => {
 }
 
 </style>
+
+
+

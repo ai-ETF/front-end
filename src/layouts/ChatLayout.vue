@@ -1,7 +1,7 @@
 <template>
   <div class="chat-layout">
     <Sidebar>
-      <ChatList :active-chat-id="activeChatId" @chat-selected="handleChatSelected" />
+      <!--<ChatList :active-chat-id="activeChatId" @chat-selected="handleChatSelected" /> -->
     </Sidebar>
     <div class="main-content">
       <router-view />

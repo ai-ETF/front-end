@@ -29,7 +29,7 @@ export const useSupabaseAuth = () => {
   // 创建响应式引用，存储扩展的用户信息（自定义 UserInfo 类型）
   const userInfo = ref<UserInfo | null>(null)
   // 创建响应式引用，表示当前是否正在加载
-  const loading = ref<boolean>(true)
+  const loading = ref<boolean>(false)
   // 创建响应式引用，存储错误信息
   const error = ref<string | null>(null)
   
@@ -58,7 +58,14 @@ export const useSupabaseAuth = () => {
       const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser()
       
       // 如果获取用户时出现错误，则抛出异常
-      if (userError) throw userError
+      if (userError) {
+        // 如果是会话丢失错误，这是预期的行为，不视为错误
+        if (userError.message === 'Auth session missing!') {
+          console.debug('用户未登录或会话已过期，这是正常情况')
+        } else {
+          throw userError
+        }
+      }
       
       // 更新本地认证状态存储，保存用户基本信息
       authStore.setUserFromSupabase(currentUser)
@@ -99,7 +106,7 @@ export const useSupabaseAuth = () => {
     } catch (err) {
       // 捕获并处理错误
       error.value = (err as Error).message // 将错误信息存储到响应式引用中
-      console.error('获取用户信息失败:', err) // 在控制台输出错误信息
+      console.error('获取当前用户信息失败:', err) // 在控制台输出错误信息
       return { user: null, userInfo: null, error: error.value } // 返回错误信息
     } finally {
       // 无论成功或失败，都将加载状态设置为 false
@@ -117,8 +124,8 @@ export const useSupabaseAuth = () => {
       
       // 调用 Supabase API 进行用户登录
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email, // 用户邮箱
-        password // 用户密码
+        email,
+        password
       })
       
       // 如果登录时出现错误，则抛出异常
@@ -127,41 +134,13 @@ export const useSupabaseAuth = () => {
       // 更新本地认证状态存储
       authStore.setUserFromSupabase(data.user)
       
-      // 获取用户附加信息
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .maybeSingle()    // 期望只返回一条记录
-      
-      // 处理用户资料信息
-      if (!profileError && profile) {
-        // 如果成功获取到用户资料，使用 profiles 表中的用户名
-        userInfo.value = {
-          id: data.user.id,
-          email: data.user.email || '',
-          username: profile.username,
-          created_at: data.user.created_at,
-          updated_at: data.user.updated_at
-        }
-      } else {
-        // 如果没有获取到用户资料，使用邮箱前缀作为用户名
-        userInfo.value = {
-          id: data.user.id,
-          email: data.user.email || '',
-          username: data.user.email?.split('@')[0] || data.user.email || '',
-          created_at: data.user.created_at,
-          updated_at: data.user.updated_at
-        }
-      }
-      
       // 返回登录成功的用户信息
-      return { user: data.user, userInfo: userInfo.value }
+      return { user: data.user, error: null }
     } catch (err) {
       // 捕获并处理错误
       error.value = (err as Error).message // 将错误信息存储到响应式引用中
       console.error('登录失败:', err) // 在控制台输出错误信息
-      return { user: null, userInfo: null, error: error.value } // 返回错误信息
+      return { user: null, error: error.value } // 返回错误信息
     } finally {
       // 无论成功或失败，都将加载状态设置为 false
       loading.value = false
@@ -177,27 +156,25 @@ export const useSupabaseAuth = () => {
       loading.value = true
       
       // 调用 Supabase API 进行用户注册
-      const { data, error: signupError } = await supabase.auth.signUp({
-        email, // 用户邮箱
-        password // 用户密码
+      const { data, error: registerError } = await supabase.auth.signUp({
+        email,
+        password
       })
       
       // 如果注册时出现错误，则抛出异常
-      if (signupError) throw signupError
+      if (registerError) throw registerError
       
-      // 将注册成功的用户信息存储到响应式引用中
-
-      // 如果用户成功创建
-      if (data.user) {
-        // 创建对应的用户资料记录
+      // 如果注册成功并且返回了用户信息
+      if (data?.user) {
+        // 创建用户资料记录
         const { error: insertError } = await supabase
           .from('profiles')
           .insert([
             {
-              user_id: data.user.id,
-              username: username || email,
-              email: email,
-              updated_at: new Date().toISOString()
+              user_id: data.user.id,  // 用户 ID
+              username: username || email, // 用户名（如果未提供则使用邮箱）
+              email: data.user.email || '', // 用户邮箱
+              updated_at: new Date().toISOString() // 更新时间
             }
           ])
           
@@ -287,14 +264,21 @@ export const useSupabaseAuth = () => {
       await getCurrentUser()
     } catch (err) {
       // 捕获并处理初始化错误
-      console.error('初始化认证状态失败:', err)
+      // 仅在非会话丢失错误时记录错误
+      if (!(err instanceof Error) || err.message !== 'Auth session missing!') {
+        console.error('初始化认证状态失败:', err)
+      } else {
+        console.debug('初始化认证状态时发现用户未登录，这是正常情况')
+      }
     }
   }
   
   // 在组件挂载时初始化认证状态
-  onMounted(() => {
+  // 注意：这里不能直接在 async setup() 中调用 onMounted
+  // 需要在返回的对象中提供一个方法供组件在适当的时候调用
+  const mount = () => {
     initAuth()
-  })
+  }
   
   // 返回所有需要的属性和方法，供组件使用
   return {
@@ -307,6 +291,7 @@ export const useSupabaseAuth = () => {
     register, // 注册方法
     logout, // 登出方法
     getCurrentUser, // 获取当前用户方法
-    initAuth // 初始化认证状态方法
+    initAuth, // 初始化认证状态方法
+    mount // 挂载方法，用于在组件中正确初始化认证状态
   }
 }

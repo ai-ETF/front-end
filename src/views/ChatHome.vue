@@ -104,7 +104,7 @@ const onSend = async (msg: string) => {
       
       // 同时在本地 store 中创建聊天记录
       chatStore.addChat({
-        id: newChat.id.toString(),
+        id: newChat.id,
         title: text,
         messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
       })
@@ -131,7 +131,7 @@ const onSend = async (msg: string) => {
         // 向 Supabase 发送 AI 回复
         await sendMessage(newChat.id,reply , 'assistant')
         // 同时在本地 store 中添加回复
-        chatStore.addMessage(newChat.id.toString(), reply, false)
+        chatStore.addMessage(newChat.id, reply, false)
       }, 800) // 延迟 800 毫秒
     } else {
       console.error('[ChatHome] failed to create new chat')

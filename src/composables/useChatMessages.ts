@@ -36,8 +36,8 @@ export const useChatMessages = () => {
       // 清空之前的错误信息
       error.value = null
 
-      console.log('Fetching chats for user:', user.value)
-      console.log('isAuthenticated:', isAuthenticated.value)
+      console.log(`[useChatMessages] 当前用户的详细信息:`, user.value)
+      console.log('[useChatMessages] isAuthenticated:', isAuthenticated.value)
       
       // 从 Supabase 获取用户的聊天会话，按更新时间倒序排列
       // 通过 user_id 查询条件确保只有当前用户的数据被访问
@@ -52,6 +52,11 @@ export const useChatMessages = () => {
 
       // 更新本地聊天会话列表
       chats.value = data || []
+
+      const jsonString = `[useChatMessage] 获取到的chat.value的详细信息是: ${JSON.stringify(chats.value)}`;
+      console.log(jsonString);
+
+
       // 返回聊天会话列表
       return chats.value
     } catch (err) {
