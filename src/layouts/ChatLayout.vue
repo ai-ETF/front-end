@@ -1,7 +1,7 @@
 <template>
   <div class="chat-layout">
     <Sidebar>
-      <ChatList :active-chat-id="activeChatId" @chat-selected="handleChatSelected" />
+      <!--<ChatList :active-chat-id="activeChatId" @chat-selected="handleChatSelected" /> -->
     </Sidebar>
     <div class="main-content">
       <router-view />
@@ -10,10 +10,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar/Sidebar.vue'
-import ChatList from '@/components/ChatList.vue'
+import ChatList from '@/components/ChatList/ChatList.vue'
 
 const route = useRoute()
 const activeChatId = ref<number | null>(null)
@@ -34,6 +34,10 @@ watch(
   },
   { immediate: true }
 )
+
+onMounted(() => {
+  console.log('ChatLayout 组件已挂载，当前活动聊天ID：', activeChatId.value)
+})
 </script>
 
 <style scoped>

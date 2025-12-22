@@ -19,15 +19,63 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore, type ChatMessage } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
 import sentSvg from '@/assets/svg/send.svg'
+import { useChatMessages } from '@/composables/useChatMessages'
+import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
+import { syncChatDetailsToLocal, syncMessageToRemote } from '@/utils/chatSync'
+
+// 模拟回复内容
+const simulatedReplyTemplate = `收到：{text}（这是模拟回复）
+
+这是带有**Markdown**格式的回复示例：
+
+## 标题示例
+
+这是一个段落，其中包含*斜体*和**粗体**文本。
+
+### 代码示例
+
+\`\`\`python
+def hello_world():
+    print("Hello, World!")
+    return True
+\`\`\`
+
+### 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+- 无序列表项1
+- 无序列表项2
+
+### 链接示例
+
+访问 [GitHub](https://github.com) 获取更多信息。
+
+### 引用示例
+
+> 这是一个引用块
+> 可以跨越多行
+
+### 表格示例
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| A   | B   | C   |
+| D   | E   | F   |
+`;
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
+const { fetchMessages, sendMessage } = useChatMessages()
+const { isAuthenticated } = useSupabaseAuth()
 
 // local fallback messages when no chat selected
 const localMessages = ref([
@@ -55,8 +103,14 @@ const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
 
-// 当前 chat id（如果有）
-const chatId = computed(() => route.params.id as string | undefined)
+// 当前 chat id（如果有），统一转换为数字类型
+const chatId = computed((): number | undefined => {
+  const id = route.params.id
+  if (Array.isArray(id)) {
+    return id.length > 0 ? Number(id[0]) : undefined
+  }
+  return id ? Number(id) : undefined
+})
 
 // 当前显示的消息：如果选中聊天则显示 store 中的消息，否则显示本地默认信息
 const messages = computed(() => {
@@ -71,6 +125,44 @@ const messages = computed(() => {
   }
   return localMessages.value
 })
+     
+// 加载聊天历史消息
+const loadChatHistory = async () => {
+  if (chatId.value && isAuthenticated.value) {
+    // 检查聊天是否已经有消息，如果没有则从服务器加载
+    const chat = chatStore.getChat(chatId.value)
+
+    if (chat && chat.messages.length === 0) {
+      try {
+        // 使用同步函数加载消息到本地 store
+        await syncChatDetailsToLocal(chatId.value, fetchMessages)
+        console.log(`[ChatRoom] 聊天 ${chatId.value} 的历史消息已加载到本地 store。`)
+      } catch (error) {
+        console.error('加载聊天历史失败:', error)
+      }
+    }
+  }
+}
+
+// 手动刷新聊天历史
+const refreshChatHistory = async () => {
+  if (chatId.value) {
+    // 清空当前聊天消息
+    const chat = chatStore.getChat(chatId.value)
+    if (chat) {
+      chat.messages = []
+    }
+    // 重新加载
+    await loadChatHistory()
+  }
+}
+
+// 监听聊天ID和认证状态变化，加载对应的历史消息
+watch([chatId, isAuthenticated], ([newChatId, newIsAuth]) => {
+  if (newChatId && newIsAuth) {
+    loadChatHistory()
+  }
+}, { immediate: true })
 
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
@@ -87,7 +179,7 @@ const onSend = async (msg: string) => {
   console.log('[ChatRoom] trimmed text:', text)
 
   if (!chatId.value) { // 如果当前没有选中的聊天（需要新建会话）
-    const id = Date.now().toString() // 使用时间戳字符串作为新会话 id
+    const id = Date.now() // 使用时间戳作为新会话 id（数字类型）
     console.log('[ChatRoom] creating new chat with id:', id)
 
     // 创建聊天并把用户消息作为首条消息
@@ -110,116 +202,37 @@ const onSend = async (msg: string) => {
     // 模拟 AI 回复（包含Markdown格式）
     setTimeout(() => { // 延迟执行以模拟异步回复
       console.log('[ChatRoom] adding simulated reply to new chat:', id)
-      chatStore.addMessage(id, {
-        id: `ai-${Date.now()}`,
-        text: `收到：${text}（这是模拟回复）
-
-这是带有**Markdown**格式的回复示例：
-
-## 标题示例
-
-这是一个段落，其中包含*斜体*和**粗体**文本。
-
-### 代码示例
-
-\`\`\`python
-def hello_world():
-    print("Hello, World!")
-    return True
-\`\`\`
-
-### 列表示例
-
-1. 第一项
-2. 第二项
-3. 第三项
-
-- 无序列表项1
-- 无序列表项2
-
-### 链接示例
-
-访问 [GitHub](https://github.com) 获取更多信息。
-
-### 引用示例
-
-> 这是一个引用块
-> 可以跨越多行
-
-### 表格示例
-
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| A   | B   | C   |
-| D   | E   | F   |
-`,
-        createdAt: Date.now(),
-        isuser: false
-      }) // 向新会话添加模拟回复消息
+      syncMessageToRemote(
+        id,
+        simulatedReplyTemplate.replace('{text}', text),
+        'assistant',
+        sendMessage,
+        true // 仅本地存储，因为这是模拟回复
+      );
     }, 800) // 延迟 800 毫秒
   } else {
     // 已在聊天中，直接添加消息
     console.log('[ChatRoom] adding message to existing chat:', chatId.value)
     
-    // 添加用户消息
-    const userMessage = {
-      id: `user-${Date.now()}`,
+    // 添加用户消息并同步到云端
+    await syncMessageToRemote(
+      chatId.value,
       text,
-      createdAt: Date.now(),
-      isuser: true
-    }
-    chatStore.addMessage(chatId.value, userMessage)
+      'user',
+      sendMessage
+    );
 
     // 模拟 AI 回复（包含Markdown格式）
-    setTimeout(() => { // 延迟执行以模拟异步回复
+    setTimeout(async () => { // 延迟执行以模拟异步回复
       console.log('[ChatRoom] adding simulated reply to existing chat:', chatId.value)
       if (chatId.value) {
-        chatStore.addMessage(chatId.value, {
-          id: `ai-${Date.now()}`,
-          text: `收到：${text}（这是模拟回复）
-
-这是带有**Markdown**格式的回复示例：
-
-## 标题示例
-
-这是一个段落，其中包含*斜体*和**粗体**文本。
-
-### 代码示例
-
-\`\`\`python
-def hello_world():
-    print("Hello, World!")
-    return True
-\`\`\`
-
-### 列表示例
-
-1. 第一项
-2. 第二项
-3. 第三项
-
-- 无序列表项1
-- 无序列表项2
-
-### 链接示例
-
-访问 [GitHub](https://github.com) 获取更多信息。
-
-### 引用示例
-
-> 这是一个引用块
-> 可以跨越多行
-
-### 表格示例
-
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| A   | B   | C   |
-| D   | E   | F   |
-`,
-          createdAt: Date.now(),
-          isuser: false
-        })
+        syncMessageToRemote(
+          chatId.value,
+          simulatedReplyTemplate.replace('{text}', text),
+          'assistant',
+          sendMessage,
+          false // TODO: 仅本地存储，因为这是模拟回复
+        );
       }
     }, 800) // 延迟 800 毫秒
   }
@@ -233,7 +246,12 @@ const handleSendClick = () => {
   }
 }
 
-onMounted(() => {})
+onMounted(async() => {
+  // 组件挂载时加载聊天历史
+  console.log('[ChatRoom] component mounted, loading chat history if needed.')
+  await loadChatHistory()
+  console.log('[ChatRoom] chat history load attempt finished.')
+})
 </script>
 
 <style scoped>

@@ -37,6 +37,7 @@ import sentSvg from '@/assets/svg/send.svg'
 import { useChatMessages } from '@/composables/useChatMessages'
 /* 导入 useSupabaseAuth 组合式函数，用于检查用户认证状态 */
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
+import { message } from 'ant-design-vue'
 
 /* 创建对 ChatInput 组件实例的引用，用于直接访问组件内部属性和方法 */
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
@@ -103,7 +104,7 @@ const onSend = async (msg: string) => {
       
       // 同时在本地 store 中创建聊天记录
       chatStore.addChat({
-        id: newChat.id.toString(),
+        id: newChat.id,
         title: text,
         messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
       })
@@ -126,33 +127,36 @@ const onSend = async (msg: string) => {
       // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
       setTimeout(async () => { // 延迟执行以模拟异步回复
         console.log('[ChatHome] adding simulated reply to new chat:', newChat.id)
+        const reply:string = `[ChatHome]收到：${msg}（这是模拟回复）`
         // 向 Supabase 发送 AI 回复
-        await sendMessage(newChat.id, `收到：${text}（这是模拟回复）`, 'assistant')
+        await sendMessage(newChat.id,reply , 'assistant')
         // 同时在本地 store 中添加回复
-        chatStore.addMessage(newChat.id.toString(), `收到：${text}（这是模拟回复）`, false)
+        chatStore.addMessage(newChat.id, reply, false)
       }, 800) // 延迟 800 毫秒
     } else {
       console.error('[ChatHome] failed to create new chat')
     }
   } else {
-    // 已在聊天中，直接添加消息
-    console.log('[ChatHome] adding message to existing chat:', chatId.value)
-    
-    // 将消息发送到 Supabase
-    const chatIdNum = parseInt(chatId.value)
-    await sendMessage(chatIdNum, text, 'user')
-    
-    // 同时在本地 store 中添加消息
-    chatStore.addMessage(chatId.value, text, true)
 
-    // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
-    setTimeout(async () => { // 延迟执行以模拟异步回复
-      console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
-      // 向 Supabase 发送 AI 回复
-      await sendMessage(chatIdNum, `收到：${text}（这是模拟回复）`, 'assistant')
-      // 同时在本地 store 中添加回复
-      chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false)
-    }, 800) // 延迟 800 毫秒
+    console.log('[ChatHome] chatId exists, adding message to existing chat:', chatId.value)
+    // 已在聊天中，直接添加消息
+    // console.log('[ChatHome] adding message to existing chat:', chatId.value)
+    
+    // // 将消息发送到 Supabase
+    // const chatIdNum = parseInt(chatId.value)
+    // await sendMessage(chatIdNum, text, 'user')
+    
+    // // 同时在本地 store 中添加消息
+    // chatStore.addMessage(chatId.value, text, true)
+
+    // // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
+    // setTimeout(async () => { // 延迟执行以模拟异步回复
+    //   console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
+    //   // 向 Supabase 发送 AI 回复
+    //   await sendMessage(chatIdNum, `收到：${text}（这是模拟回复）`, 'assistant')
+    //   // 同时在本地 store 中添加回复
+    //   chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false)
+    // }, 800) // 延迟 800 毫秒
   }
 }
 
