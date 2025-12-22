@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineEmits, nextTick, defineExpose, computed, watch } from 'vue'
+import { ref, nextTick, computed, watch } from 'vue'
 
 interface Props {
   disabled?: boolean

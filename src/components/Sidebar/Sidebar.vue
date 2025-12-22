@@ -588,10 +588,10 @@ import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 /* 选中状态 */
 .chat-item.active {
-  background-color: #a84949; /* 中灰色突出选中 */
+  background-color: #eaeaea; /* 中灰色突出选中 */
   color: #000;
   font-weight: 500; /* 加粗文字，提高视觉识别度 */
-  box-shadow: inset 2px 0 0 #8c8c8c; /* 左侧深灰色条，高亮选中 */
+  /* box-shadow: inset 2px 0 0 #8c8c8c; 左侧深灰色条，高亮选中 */
   border-radius: 6px; /* 保持圆角一致 */
   transition: all 0.2s ease;
 }
