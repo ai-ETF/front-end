@@ -4,7 +4,8 @@ export interface ChatMessage {
   id: string
   text: string
   createdAt: number
-  isuser?: boolean
+  timestamp: Date  // 修改为必需属性，与aiService.ts一致
+  isuser: boolean  // 修改为必需属性，与aiService.ts一致
 }
 
 export interface ChatItem {
@@ -40,7 +41,8 @@ export const useChatStore = defineStore('chat', {
           id: Date.now().toString(),
           text: message.trim(),
           createdAt: Date.now(),
-          isuser: isuser
+          isuser: isuser || false,  // 确保isuser为boolean类型
+          timestamp: new Date()     // 添加必需的timestamp属性
         }
       } else {
         // 如果传入的是对象，则直接使用
@@ -56,6 +58,50 @@ export const useChatStore = defineStore('chat', {
     getChat(chatId: number) {
       return this.chats.find((c) => c.id === chatId)
     },
+    
+    // 初始化聊天（如果不存在则创建）
+    initChat(chatId: number, title: string = '默认聊天') {
+      let chat = this.getChat(chatId)
+      if (!chat) {
+        chat = {
+          id: chatId,
+          title,
+          messages: []
+        }
+        this.addChat(chat)
+      }
+      return chat
+    },
+
+    // 从指定聊天中移除消息
+    removeMessage(chatId: number, messageId: string) {
+      const chat = this.chats.find((c) => c.id === chatId)
+      if (!chat) return false
+      
+      const messageIndex = chat.messages.findIndex(m => m.id === messageId)
+      if (messageIndex !== -1) {
+        chat.messages.splice(messageIndex, 1)
+        return true
+      }
+      return false
+    },
+
+    // 更新消息内容
+    updateMessage(chatId: number, messageId: string, newText: string) {
+      const chat = this.chats.find((c) => c.id === chatId)
+      console.log('[Updating message]:', { chatId, messageId, newText })
+
+      if (!chat) return false
+      
+      const message = chat.messages.find(m => m.id === messageId)
+      if (message) {
+        message.text = newText
+        console.log(`[Message updated]: message.text = ${message.text}`)
+        return true
+      }
+      return false
+    },
+
     clearChat(chatId: number) { // 修改参数类型为number
       const chat = this.chats.find((c) => c.id === chatId)
       if (chat) {

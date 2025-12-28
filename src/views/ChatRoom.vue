@@ -4,7 +4,7 @@
     <MessagesContainer :messages="messages" />
 
     <!-- 聊天输入组件，带前后图标插槽 -->
-    <ChatInput ref="chatInputRef" @send="onSend">
+    <ChatInput ref="chatInputRef" @send="onSend" :disabled="isWaitingForAI">
       <!-- 左边插槽 -->
       <template #prefix>
         <PlusLogo />
@@ -12,14 +12,19 @@
 
       <!-- 右边插槽 -->
       <template #suffix>
-        <img :src="sentSvg" alt="发送按钮" @click="handleSendClick"/>
+        <img 
+          :src="sentSvg" 
+          alt="发送按钮" 
+          @click="handleSendClick"
+          :class="{ disabled: isWaitingForAI }"
+        />
       </template>
     </ChatInput>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch,onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore, type ChatMessage } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
@@ -29,49 +34,13 @@ import sentSvg from '@/assets/svg/send.svg'
 import { useChatMessages } from '@/composables/useChatMessages'
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import { syncChatDetailsToLocal, syncMessageToRemote } from '@/utils/chatSync'
+import { streamFromAI } from '@/services/aiService'
 
-// 模拟回复内容
-const simulatedReplyTemplate = `收到：{text}（这是模拟回复）
+// 控制是否正在等待AI响应
+const isWaitingForAI = ref(false)
 
-这是带有**Markdown**格式的回复示例：
-
-## 标题示例
-
-这是一个段落，其中包含*斜体*和**粗体**文本。
-
-### 代码示例
-
-\`\`\`python
-def hello_world():
-    print("Hello, World!")
-    return True
-\`\`\`
-
-### 列表示例
-
-1. 第一项
-2. 第二项
-3. 第三项
-
-- 无序列表项1
-- 无序列表项2
-
-### 链接示例
-
-访问 [GitHub](https://github.com) 获取更多信息。
-
-### 引用示例
-
-> 这是一个引用块
-> 可以跨越多行
-
-### 表格示例
-
-| 列1 | 列2 | 列3 |
-|-----|-----|-----|
-| A   | B   | C   |
-| D   | E   | F   |
-`;
+// 用于取消正在进行的AI请求
+const abortController = ref<AbortController | null>(null)
 
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
 const { fetchMessages, sendMessage } = useChatMessages()
@@ -95,7 +64,7 @@ console.log('Hello, World!');
 6. 列表项
 `,
     isUser: false, 
-    timestamp: new Date() 
+    timestamp: new Date()
   }
 ])
 
@@ -119,8 +88,8 @@ const messages = computed(() => {
     return c ? c.messages.map((m: ChatMessage) => ({
       id: m.id,
       text: m.text,
-      isUser: m.isuser !== undefined ? m.isuser: false,
-      timestamp: new Date(m.createdAt)
+      isUser: m.isuser,  // 直接使用m.isuser，因为现在是必需字段
+      timestamp: m.timestamp  // 直接使用timestamp，因为现在是必需字段
     })) : []
   }
   return localMessages.value
@@ -129,17 +98,44 @@ const messages = computed(() => {
 // 加载聊天历史消息
 const loadChatHistory = async () => {
   if (chatId.value && isAuthenticated.value) {
-    // 检查聊天是否已经有消息，如果没有则从服务器加载
-    const chat = chatStore.getChat(chatId.value)
+    // 确保聊天在 store 中存在
+    let chat = chatStore.getChat(chatId.value)
+    
+    // 如果聊天不存在于 store 中，则初始化一个
+    if (!chat) {
+      // 先尝试从服务器获取聊天信息
+      try {
+        const { fetchChats } = useChatMessages()
+        const remoteChats = await fetchChats()
+        const remoteChat = remoteChats.find(c => c.id === chatId.value)
+        
+        if (remoteChat) {
+          // 使用从服务器获取的信息初始化本地聊天对象
+          chat = chatStore.initChat(remoteChat.id, remoteChat.title as string)
+          console.log(`[ChatRoom] 成功初始化聊天 ${chatId.value} 到本地 store`)
+        } else {
+          // 如果服务器上也没有这个聊天，则创建一个默认的
+          chat = chatStore.initChat(chatId.value, '默认聊天')
+          console.log(`[ChatRoom] 服务器上找不到聊天 ${chatId.value}，已创建默认聊天`)
+        }
+      } catch (error) {
+        console.error('[ChatRoom] 获取聊天信息失败:', error)
+        // 出错时仍然创建一个默认聊天
+        chat = chatStore.initChat(chatId.value)
+      }
+    }
 
+    // 如果聊天存在并且消息数组为空，则从服务器加载消息
     if (chat && chat.messages.length === 0) {
       try {
         // 使用同步函数加载消息到本地 store
         await syncChatDetailsToLocal(chatId.value, fetchMessages)
         console.log(`[ChatRoom] 聊天 ${chatId.value} 的历史消息已加载到本地 store。`)
       } catch (error) {
-        console.error('加载聊天历史失败:', error)
+        console.error('[ChatRoom] 加载聊天历史失败:', error)
       }
+    } else if (chat && chat.messages.length > 0) {
+      console.log(`[ChatRoom] 聊天 ${chatId.value} 已有本地消息，无需加载。`)
     }
   }
 }
@@ -183,10 +179,17 @@ const onSend = async (msg: string) => {
     console.log('[ChatRoom] creating new chat with id:', id)
 
     // 创建聊天并把用户消息作为首条消息
+    const userMessageId = `user-${Date.now()}`;
     chatStore.addChat({
       id,
       title: text.length > 20 ? text.substring(0, 20) + '...' : text,
-      messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
+      messages: [{ 
+        id: userMessageId, 
+        text, 
+        createdAt: Date.now(), 
+        isuser: true,
+        timestamp: new Date()  // 添加必需的timestamp属性
+      }]
     })
     console.log('[ChatRoom] added new chat to store:', id)
 
@@ -199,22 +202,32 @@ const onSend = async (msg: string) => {
       console.error('[ChatRoom] navigation failed:', err)
     }
 
-    // 模拟 AI 回复（包含Markdown格式）
-    setTimeout(() => { // 延迟执行以模拟异步回复
-      console.log('[ChatRoom] adding simulated reply to new chat:', id)
-      syncMessageToRemote(
+    // 发送用户消息并获取AI回复
+    if (id) {
+      // 同步用户消息到云端
+      await syncMessageToRemote(
         id,
-        simulatedReplyTemplate.replace('{text}', text),
-        'assistant',
-        sendMessage,
-        true // 仅本地存储，因为这是模拟回复
+        text,
+        'user',
+        sendMessage
       );
-    }, 800) // 延迟 800 毫秒
+      await sendToAIAndReceiveResponse(id, text);
+    }
   } else {
     // 已在聊天中，直接添加消息
     console.log('[ChatRoom] adding message to existing chat:', chatId.value)
     
-    // 添加用户消息并同步到云端
+    // 本地只添加一次消息
+    const userMessageId = `user-${Date.now()}`;
+    chatStore.addMessage(chatId.value, {
+      id: userMessageId,
+      text,
+      createdAt: Date.now(),
+      isuser: true,
+      timestamp: new Date()  // 添加必需的timestamp属性
+    });
+    
+    // 同步用户消息到云端
     await syncMessageToRemote(
       chatId.value,
       text,
@@ -222,25 +235,118 @@ const onSend = async (msg: string) => {
       sendMessage
     );
 
-    // 模拟 AI 回复（包含Markdown格式）
-    setTimeout(async () => { // 延迟执行以模拟异步回复
-      console.log('[ChatRoom] adding simulated reply to existing chat:', chatId.value)
-      if (chatId.value) {
-        syncMessageToRemote(
-          chatId.value,
-          simulatedReplyTemplate.replace('{text}', text),
-          'assistant',
-          sendMessage,
-          false // TODO: 仅本地存储，因为这是模拟回复
-        );
-      }
-    }, 800) // 延迟 800 毫秒
+    // 发送用户消息并获取AI回复
+    if (chatId.value) {
+      await sendToAIAndReceiveResponse(chatId.value, text);
+    }
   }
 }
 
+// 发送消息给AI并接收回复
+const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: string) => {
+  if (isWaitingForAI.value) {
+    console.log('[ChatRoom] AI response already in progress, ignoring new request.');
+    return;
+  }
+
+  isWaitingForAI.value = true;
+  abortController.value = new AbortController();
+
+  const aiMessageId = `assistant-${Date.now()}`;
+  
+  // ✅ 方法1：先添加空消息，然后逐块更新（确保响应式）
+  const initialAiMessage: ChatMessage = {
+    id: aiMessageId,
+    text: '', // 开始时空的
+    isuser: false,
+    createdAt: Date.now(),
+    timestamp: new Date()
+  };
+
+  // 添加空的AI消息到本地store
+  chatStore.addMessage(chatIdValue, initialAiMessage);
+  
+  // ✅ 创建一个响应式变量来跟踪AI消息内容⭐没有创建一个响应式的变量来存储AI消息内容
+  const aiMessageContent = ref('');
+  
+  // 使用watch来监听内容变化并更新store
+  watch(aiMessageContent, (newContent) => {
+    console.log('[ChatRoom] AI内容更新:', newContent.length, '字符');
+    
+    // ✅ 使用store的更新方法
+    chatStore.updateMessage(chatIdValue, aiMessageId, newContent);
+    
+    // ✅ 额外的保险：强制触发UI更新
+    // 这可以通过修改一个无关的响应式变量来实现
+    // 但更好的方式是确保store的更新是响应式的
+  }, { immediate: true });
+
+  try {
+    console.log('[ChatRoom] Sending messages to AI');
+    
+    const result = await streamFromAI(
+      chatStore.getChat(chatIdValue)?.messages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.createdAt)
+      })) || [],
+      (chunk: string) => {
+        // ✅ 直接更新响应式变量，watch会监听到并更新store
+        aiMessageContent.value += chunk;
+        
+        // ✅ 同时也可以直接更新store（双重保障）
+        // 但要注意：如果store更新不够快，这里可能会有延迟
+        // 所以我们主要依赖watch
+      },
+      abortController.value.signal,
+      chatIdValue
+    );
+
+    if (!result.success) {
+      throw new Error(result.error || 'AI回复失败');
+    }
+
+    console.log(`[ChatRoom] AI response completed: ${aiMessageContent.value.length} characters`);
+    
+    // ✅ 确保最终内容同步到store
+    if (aiMessageContent.value) {
+      chatStore.updateMessage(chatIdValue, aiMessageId, aiMessageContent.value);
+    }
+
+    // 同步AI回复到云端
+    await syncMessageToRemote(
+      chatIdValue,
+      aiMessageContent.value,
+      'assistant',
+      sendMessage
+    );
+    
+  } catch (error) {
+    console.error('AI回复错误:', error);
+    
+    // 出错时，设置错误消息
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    const finalErrorMessage = `抱歉，AI回复时出现错误：${errorMessage}`;
+    
+    // 更新store中的消息
+    chatStore.updateMessage(chatIdValue, aiMessageId, finalErrorMessage);
+    
+    // 如果已经同步了一部分内容，也同步错误信息
+    if (aiMessageContent.value) {
+      await syncMessageToRemote(
+        chatIdValue,
+        finalErrorMessage,
+        'assistant',
+        sendMessage
+      );
+    }
+  } finally {
+    isWaitingForAI.value = false;
+    abortController.value = null;
+  }
+};
 // 添加发送按钮点击处理函数
 const handleSendClick = () => {
-  if (chatInputRef.value && chatInputRef.value.message.trim()) {
+  if (chatInputRef.value && chatInputRef.value.message.trim() && !isWaitingForAI.value) {
     onSend(chatInputRef.value.message)
     chatInputRef.value.message = ''
   }
@@ -251,6 +357,21 @@ onMounted(async() => {
   console.log('[ChatRoom] component mounted, loading chat history if needed.')
   await loadChatHistory()
   console.log('[ChatRoom] chat history load attempt finished.')
+})
+
+onUnmounted(() => {
+  // 取消未完成的请求··
+  if (abortController.value) {
+    abortController.value.abort();
+  }
+
+  if (chatId.value) {
+    const chat = chatStore.getChat(chatId.value)
+    if (chat) {
+      // 清空消息而不是设置为空数组，保持对象引用
+      chat.messages.splice(0, chat.messages.length)
+    }
+  }
 })
 </script>
 

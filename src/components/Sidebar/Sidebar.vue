@@ -279,16 +279,19 @@ const confirmDelete = async () => {
       return
     }
     
-    // 调用删除函数
-    await deleteChat(modalState.deleteChatItem.id)
+    // 使用syncDeleteChatToRemote来确保正确同步删除操作到远程和本地
+    const { syncDeleteChatToRemote } = await import('@/utils/syncToRemote')
+    const success = await syncDeleteChatToRemote(modalState.deleteChatItem.id, deleteChat)
+    
+    if (!success) {
+      console.error('删除聊天失败')
+      return
+    }
     
     // 如果当前正在查看这个聊天，导航到主页
     if (routeId.value === modalState.deleteChatItem.id) {
       router.push('/chat')
     }
-    
-    // 从本地 store 中删除
-    chatStore.deleteChat(modalState.deleteChatItem.id)
     
     console.log('聊天已删除:', modalState.deleteChatItem.id)
   } catch (error) {
@@ -623,6 +626,5 @@ import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 }
 
 </style>
-
 
 

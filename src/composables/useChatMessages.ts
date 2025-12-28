@@ -276,17 +276,6 @@ export const useChatMessages = () => {
       // 清空之前的错误信息
       error.value = null
       
-      // 删除聊天会话相关的所有消息
-      // 通过 user_id 条件确保只删除当前用户的数据
-      const { error: messagesError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('chat_id', chatId)        // 匹配聊天 ID
-        .eq('user_id', user.value!.id) // 确保是当前用户的消息
-
-      // 如果删除消息过程中出现错误，则抛出异常
-      if (messagesError) throw messagesError
-
       // 删除聊天会话本身
       const { error: chatError } = await supabase
         .from('chats')

@@ -5,58 +5,50 @@
 
 import { useChatStore } from '@/stores/chat'
 import type { ChatMessage as RemoteChatMessage } from '@/composables/useChatMessages'
-import type { ChatMessage } from '@/stores/chat'
 
 /**
- * 发送消息并同步到云端和本地 store
+ * 发送消息并同步到云端
  * @param chatId 聊天会话 ID
  * @param message 消息内容
  * @param role 消息发送者角色 ('user' 或 'assistant')
  * @param sendMessage 发送消息到云端的函数
- * @param isLocalOnly 是否仅本地存储（用于模拟回复等场景）
  */
 export const syncMessageToRemote = async (
   chatId: number,
   message: string,
   role: 'user' | 'assistant',
-  sendMessage: (chatId: number, content: string, role: 'user' | 'assistant') => Promise<RemoteChatMessage | null>,
-  isLocalOnly: boolean = false
+  sendMessage: (
+    chatId: number,
+    content: string,
+    role: 'user' | 'assistant'
+  ) => Promise<RemoteChatMessage | null>,
 ) => {
-  const chatStore = useChatStore();
-  
-  // 创建本地消息对象
-  const localMessage: ChatMessage = {
-    id: `${role}-${Date.now()}`,
-    text: message,
-    createdAt: Date.now(),
-    isuser: role === 'user'
-  };
-
-  // 先添加到本地 store（乐观更新）
-  chatStore.addMessage(chatId, localMessage);
-
-  // 如果仅本地存储，直接返回
-  if (isLocalOnly) {
-    return localMessage;
-  }
-
   try {
-    // 发送到云端
-    const remoteMessage = await sendMessage(chatId, message, role);
-    
-    if (remoteMessage) {
-      // 如果需要，可以用云端返回的ID更新本地消息
-      // 这里暂不更新，保持本地ID不变
-      console.log(`消息已同步到云端: ${role}`, message);
+    const remoteMessage = await sendMessage(chatId, message, role)
+
+    if (!remoteMessage) {
+      console.warn('[syncMessageToRemote] remoteMessage is null')
+      return null
     }
-    
-    return localMessage;
+
+    console.log(
+      `[syncMessageToRemote] synced ${role} message to remote`,
+      remoteMessage
+    )
+
+    // ⚠️ 注意：这里【不再 addMessage】
+    // 如果未来要做 ID 对齐，可以在这里 update 本地 message
+
+    return remoteMessage
   } catch (error) {
-    console.error(`发送消息到云端失败: ${role}`, message, error);
-    // 即使云端同步失败，也保留本地消息
-    return localMessage;
+    console.error(
+      `[syncMessageToRemote] failed to sync ${role} message`,
+      error
+    )
+    return null
   }
 }
+
 
 /**
  * 删除聊天会话并同步到远程

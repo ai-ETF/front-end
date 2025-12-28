@@ -1,7 +1,7 @@
 <template>
   <div class="chat-layout">
     <Sidebar>
-      <!--<ChatList :active-chat-id="activeChatId" @chat-selected="handleChatSelected" /> -->
+
     </Sidebar>
     <div class="main-content">
       <router-view />
@@ -13,7 +13,6 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar/Sidebar.vue'
-import ChatList from '@/components/ChatList/ChatList.vue'
 
 const route = useRoute()
 const activeChatId = ref<number | null>(null)
