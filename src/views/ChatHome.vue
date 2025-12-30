@@ -6,7 +6,7 @@
     <h1 class="page-title">需要什么帮助吗？</h1>
 
     <!-- 聊天输入组件，带前后图标插槽 -->
-    <ChatInput ref="chatInputRef" @send="onSend">
+    <ChatInput ref="chatInputRef" @send="onSend" :disabled="isWaitingForAI">
       <!-- 左边插槽 -->
       <template #prefix>
         <PlusLogo />
@@ -14,7 +14,12 @@
 
       <!-- 右边插槽 -->
       <template #suffix>
-        <img :src="sentSvg" alt="发送按钮" @click="handleSendClick"/>
+        <img 
+          :src="sentSvg" 
+          alt="发送按钮" 
+          @click="handleSendClick"
+          :class="{ disabled: isWaitingForAI }"
+        />
       </template>
     </ChatInput>
   </div>
@@ -22,11 +27,11 @@
 
 <script setup lang="ts">
 /* 导入 Vue 的 ref、onMounted、computed 等 API */
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, ref as Ref } from 'vue'
 /* 导入 Vue Router 的 useRouter 和 useRoute 用于路由管理 */
 import { useRouter, useRoute } from 'vue-router'
 /* 导入聊天状态管理 store */
-import { useChatStore } from '@/stores/chat'
+import { useChatStore, type ChatMessage } from '@/stores/chat'
 /* 导入聊天输入组件 */
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 /* 导入加号 Logo 组件 */
@@ -38,6 +43,15 @@ import { useChatMessages } from '@/composables/useChatMessages'
 /* 导入 useSupabaseAuth 组合式函数，用于检查用户认证状态 */
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import { message } from 'ant-design-vue'
+/* 导入流式AI服务和同步工具 */
+import { streamFromAI } from '@/services/aiService'
+import { syncMessageToRemote } from '@/utils/chatSync'
+
+/* 控制是否正在等待AI响应 */
+const isWaitingForAI = ref(false)
+
+/* 用于取消正在进行的AI请求 */
+const abortController = ref<AbortController | null>(null)
 
 /* 创建对 ChatInput 组件实例的引用，用于直接访问组件内部属性和方法 */
 const chatInputRef = ref<InstanceType<typeof ChatInput> | null>(null)
@@ -55,7 +69,7 @@ const { isAuthenticated } = useSupabaseAuth()
 /* 处理发送按钮点击事件 */
 const handleSendClick = () => {
   /* 检查输入框引用是否存在且有内容 */
-  if (chatInputRef.value && chatInputRef.value.message.trim()) {
+  if (chatInputRef.value && chatInputRef.value.message.trim() && !isWaitingForAI.value) {
     /* 调用发送消息函数 */
     onSend(chatInputRef.value.message)
     /* 清空输入框内容 */
@@ -63,110 +77,225 @@ const handleSendClick = () => {
   }
 }
 
-// 当前 chat id（如果有）
-/* 计算属性：获取当前聊天 ID */
-const chatId = computed(() => route.params.id as string | undefined)
+
+// 当前 chat id（如果有），统一转换为数字类型
+const chatId = computed((): number | undefined => {
+  const id = route.params.id
+  if (Array.isArray(id)) {
+    return id.length > 0 ? Number(id[0]) : undefined
+  }
+  return id ? Number(id) : undefined
+})
 
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
-/* 发送消息处理函数 */
+// 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
   // 调试：函数被调用，打印原始输入和当前 chatId
-  console.log('[ChatHome] onSend called, msg:', msg, 'chatId:', chatId.value)
+  console.log('[ChatRoom] onSend called, msg:', msg, 'chatId:', chatId.value)
 
-  /* 检查消息是否为空或仅包含空白字符 */
   if (!msg || !msg.trim()) {
     // 可能误触了
-    console.log('[ChatHome] empty or whitespace-only message, ignoring.')
+    console.log('[ChatRoom] empty or whitespace-only message, ignoring.')
     return // 如果消息为空或仅包含空白字符则直接返回
   }
 
-  /* 检查用户是否已认证（已登录） */
-  if (!isAuthenticated.value) {
-    // 用户未登录，跳转到登录页面
-    console.log('[ChatHome] user not authenticated, redirecting to login')
-    router.push('/login')
-    return
-  }else{
-    console.log('[ChatHome] user is authenticated')
-  }
-
-  /* 去除消息首尾空白字符 */
   const text = msg.trim() // 去除首尾空白并保存为 text
-  console.log('[ChatHome] trimmed text:', text)
+  console.log('[ChatRoom] trimmed text:', text)
 
-  /* 检查当前是否没有选中的聊天（需要新建会话） */
   if (!chatId.value) { // 如果当前没有选中的聊天（需要新建会话）
-    /* 使用 useChatMessages 创建新聊天会话 */
     const newChat = await createChat(text)
-    
-    if (newChat) {
-      console.log('[ChatHome] created new chat with id:', newChat.id)
-      
-      // 同时在本地 store 中创建聊天记录
-      chatStore.addChat({
-        id: newChat.id,
-        title: text,
-        messages: [{ id: Date.now().toString(), text, createdAt: Date.now(), isuser: true }]
-      })
-      
-      // 发送用户消息到 Supabase
-      await sendMessage(newChat.id, text, 'user')
-      
-      // 跳转到新会话
-      try {
-        console.log('[ChatHome] navigating to /chat/' + newChat.id)
-        console.log(`[ChatHome] isAuthenticated: ${isAuthenticated.value}`)
-        
-      // 检查用户是否已登录 
-        await router.push(`/chat/${newChat.id}`) // 跳转到新创建的聊天路由
-        console.log('[ChatHome] navigation success to /chat/' + newChat.id)
-      } catch (err) {
-        console.error('[ChatHome] navigation failed:', err)
-      }
 
-      // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
-      setTimeout(async () => { // 延迟执行以模拟异步回复
-        console.log('[ChatHome] adding simulated reply to new chat:', newChat.id)
-        const reply:string = `[ChatHome]收到：${msg}（这是模拟回复）`
-        // 向 Supabase 发送 AI 回复
-        await sendMessage(newChat.id,reply , 'assistant')
-        // 同时在本地 store 中添加回复
-        chatStore.addMessage(newChat.id, reply, false)
-      }, 800) // 延迟 800 毫秒
-    } else {
-      console.error('[ChatHome] failed to create new chat')
+    if(!newChat) {
+      message.error('创建新聊天失败，请稍后重试。')
+      console.error('[ChatRoom] Failed to create new chat.')
+      return
+    } 
+    // 创建聊天并把用户消息作为首条消息
+    const userMessageId = `user-${Date.now()}`;
+    chatStore.addChat({
+      id: newChat.id,
+      title: text.length > 20 ? text.substring(0, 20) + '...' : text,
+      messages: [{ 
+        id: userMessageId, 
+        text, 
+        createdAt: Date.now(), 
+        isuser: true,
+        timestamp: new Date()  // 添加必需的timestamp属性
+      }]
+    })
+    console.log('[ChatRoom] added new chat to store:', newChat.id)
+
+    // 跳转到新会话
+    try {
+      console.log('[ChatRoom] navigating to /chat/' + newChat.id)
+      await router.push(`/chat/${newChat.id}`) // 跳转到新创建的聊天路由
+      console.log('[ChatRoom] navigation success to /chat/' + newChat.id)
+    } catch (err) {
+      console.error('[ChatRoom] navigation failed:', err)
+    }
+
+    // 发送用户消息并获取AI回复
+    if (newChat.id) {
+      // 同步用户消息到云端
+      await syncMessageToRemote(
+        newChat.id,
+        text,
+        'user',
+        sendMessage
+      );
+      await sendToAIAndReceiveResponse(newChat.id, text);
     }
   } else {
-
-    console.log('[ChatHome] chatId exists, adding message to existing chat:', chatId.value)
     // 已在聊天中，直接添加消息
-    // console.log('[ChatHome] adding message to existing chat:', chatId.value)
+    console.log('[ChatRoom] adding message to existing chat:', chatId.value)
     
-    // // 将消息发送到 Supabase
-    // const chatIdNum = parseInt(chatId.value)
-    // await sendMessage(chatIdNum, text, 'user')
+    // 本地只添加一次消息
+    const userMessageId = `user-${Date.now()}`;
+    chatStore.addMessage(chatId.value, {
+      id: userMessageId,
+      text,
+      createdAt: Date.now(),
+      isuser: true,
+      timestamp: new Date()  // 添加必需的timestamp属性
+    });
     
-    // // 同时在本地 store 中添加消息
-    // chatStore.addMessage(chatId.value, text, true)
+    // 同步用户消息到云端
+    await syncMessageToRemote(
+      chatId.value,
+      text,
+      'user',
+      sendMessage
+    );
 
-    // // 模拟 AI 回复（实际应用中这里会调用 AI 服务）
-    // setTimeout(async () => { // 延迟执行以模拟异步回复
-    //   console.log('[ChatHome] adding simulated reply to existing chat:', chatId.value)
-    //   // 向 Supabase 发送 AI 回复
-    //   await sendMessage(chatIdNum, `收到：${text}（这是模拟回复）`, 'assistant')
-    //   // 同时在本地 store 中添加回复
-    //   chatStore.addMessage(chatId.value!, `收到：${text}（这是模拟回复）`, false)
-    // }, 800) // 延迟 800 毫秒
+    // 发送用户消息并获取AI回复
+    if (chatId.value) {
+      await sendToAIAndReceiveResponse(chatId.value, text);
+    }
   }
 }
 
+// 发送消息给AI并接收回复
+const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: string) => {
+  if (isWaitingForAI.value) {
+    console.log('[ChatRoom] AI response already in progress, ignoring new request.');
+    return;
+  }
+
+  isWaitingForAI.value = true;
+  abortController.value = new AbortController();
+
+  const aiMessageId = `assistant-${Date.now()}`;
+  
+  // ✅ 方法1：先添加空消息，然后逐块更新（确保响应式）
+  const initialAiMessage: ChatMessage = {
+    id: aiMessageId,
+    text: '', // 开始时空的
+    isuser: false,
+    createdAt: Date.now(),
+    timestamp: new Date()
+  };
+
+  // 添加空的AI消息到本地store
+  chatStore.addMessage(chatIdValue, initialAiMessage);
+  
+  // ✅ 创建一个响应式变量来跟踪AI消息内容⭐没有创建一个响应式的变量来存储AI消息内容
+  const aiMessageContent = ref('');
+  
+  // 使用watch来监听内容变化并更新store
+  watch(aiMessageContent, (newContent) => {
+    console.log('[ChatRoom] AI内容更新:', newContent.length, '字符');
+    
+    // ✅ 使用store的更新方法
+    chatStore.updateMessage(chatIdValue, aiMessageId, newContent);
+    
+    // ✅ 额外的保险：强制触发UI更新
+    // 这可以通过修改一个无关的响应式变量来实现
+    // 但更好的方式是确保store的更新是响应式的
+  }, { immediate: true });
+
+  try {
+    console.log('[ChatRoom] Sending messages to AI');
+    
+    const result = await streamFromAI(
+      chatStore.getChat(chatIdValue)?.messages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.createdAt)
+      })) || [],
+      (chunk: string) => {
+        // ✅ 直接更新响应式变量，watch会监听到并更新store
+        aiMessageContent.value += chunk;
+        
+        // ✅ 同时也可以直接更新store（双重保障）
+        // 但要注意：如果store更新不够快，这里可能会有延迟
+        // 所以我们主要依赖watch
+      },
+      abortController.value.signal,
+      chatIdValue
+    );
+
+    if (!result.success) {
+      throw new Error(result.error || 'AI回复失败');
+    }
+
+    console.log(`[ChatRoom] AI response completed: ${aiMessageContent.value.length} characters`);
+    
+    // ✅ 确保最终内容同步到store
+    if (aiMessageContent.value) {
+      chatStore.updateMessage(chatIdValue, aiMessageId, aiMessageContent.value);
+    }
+
+    // 同步AI回复到云端
+    await syncMessageToRemote(
+      chatIdValue,
+      aiMessageContent.value,
+      'assistant',
+      sendMessage
+    );
+    
+  } catch (error) {
+    console.error('AI回复错误:', error);
+    
+    // 出错时，设置错误消息
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+    const finalErrorMessage = `抱歉，AI回复时出现错误：${errorMessage}`;
+    
+    // 更新store中的消息
+    chatStore.updateMessage(chatIdValue, aiMessageId, finalErrorMessage);
+    
+    // 如果已经同步了一部分内容，也同步错误信息
+    if (aiMessageContent.value) {
+      await syncMessageToRemote(
+        chatIdValue,
+        finalErrorMessage,
+        'assistant',
+        sendMessage
+      );
+    }
+  } finally {
+    isWaitingForAI.value = false;
+    abortController.value = null;
+  }
+};
 /* 组件挂载时的生命周期钩子 */
 onMounted(() => {
   console.log('[ChatHome] component mounted')
 })
 
 // 组件卸载时清理定时器
-onUnmounted(() => {})
+onUnmounted(() => {
+  // 取消未完成的请求
+  if (abortController.value) {
+    abortController.value.abort();
+  }
+
+  if (chatId.value) {
+    const chat = chatStore.getChat(Number(chatId.value))
+    if (chat) {
+      // 清空消息而不是设置为空数组，保持对象引用
+      chat.messages.splice(0, chat.messages.length)
+    }
+  }
+})
 
 </script>
 
@@ -206,5 +335,11 @@ onUnmounted(() => {})
   width: 100%;                 /* 占满页面宽度 */
   max-width: 800px;            /* 增加最大宽度 */
   min-width: 500px;            /* 设置最小宽度 */
+}
+
+/* ===== 发送按钮禁用样式 ===== */
+img.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

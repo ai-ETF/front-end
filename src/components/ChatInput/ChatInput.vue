@@ -94,35 +94,42 @@ watch(isMultiLine, (newVal) => {
   });
 });
 
-// 暴露message变量给父组件访问
-defineExpose({
-  message
-})
-
 // 发送逻辑（点击或回车）
 const handleSend = (event: KeyboardEvent) => {
   // 只有在按下 Enter 键且没有按下 Shift 键时发送消息
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault()
-    if (!message.value.trim() || props.disabled) return
-    emit('send', message.value)
-    message.value = ''
-    // 发送消息后重置多行模式状态
-    isMultiLineState.value = false;
-    // 发送消息后重置高度
-    nextTick(() => {
-      if (textareaRef.value) {
-        textareaRef.value.style.height = 'auto'
-        textareaRef.value.style.overflowY = 'hidden'
-        // 重置包装器高度
-        const wrapper = textareaRef.value.parentElement
-        if (wrapper) {
-          wrapper.style.height = 'auto'
-        }
-      }
-    })
+    sendInternal()
   }
 }
+
+// 内部发送逻辑，供外部调用
+const sendInternal = () => {
+  if (!message.value.trim() || props.disabled) return
+  emit('send', message.value)
+  message.value = ''
+  // 发送消息后重置多行模式状态
+  isMultiLineState.value = false;
+  // 发送消息后重置高度
+  nextTick(() => {
+    if (textareaRef.value) {
+      textareaRef.value.style.height = 'auto'
+      textareaRef.value.style.overflowY = 'hidden'
+      // 重置包装器高度
+      const wrapper = textareaRef.value.parentElement
+      if (wrapper) {
+        wrapper.style.height = 'auto'
+      }
+    }
+  })
+}
+
+// 暴露message变量和handleSend方法给父组件访问
+defineExpose({
+  message,
+  handleSend,
+  send: sendInternal  // 添加一个可以直接发送的方法
+})
 
 // 处理输入事件，自动调整高度
 const handleInput = () => {

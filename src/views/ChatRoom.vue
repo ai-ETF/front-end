@@ -26,7 +26,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch,onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useChatStore, type ChatMessage } from '@/stores/chat'
+import { useChatStore, type ChatMessage, type ChatItem } from '@/stores/chat'
 import ChatInput from '@/components/ChatInput/ChatInput.vue'
 import MessagesContainer from '@/components/Message/MessagesContainer.vue'
 import PlusLogo from '@/components/PlusLogo/PlusLogo.vue'
@@ -111,17 +111,23 @@ const loadChatHistory = async () => {
         
         if (remoteChat) {
           // 使用从服务器获取的信息初始化本地聊天对象
-          chat = chatStore.initChat(remoteChat.id, remoteChat.title as string)
+          const newChat: ChatItem = { id: remoteChat.id, title: remoteChat.title as string, messages: [] }
+          chatStore.addChat(newChat)
+          chat = chatStore.getChat(remoteChat.id)
           console.log(`[ChatRoom] 成功初始化聊天 ${chatId.value} 到本地 store`)
         } else {
           // 如果服务器上也没有这个聊天，则创建一个默认的
-          chat = chatStore.initChat(chatId.value, '默认聊天')
+          const newChat: ChatItem = { id: chatId.value, title: '默认聊天', messages: [] }
+          chatStore.addChat(newChat)
+          chat = chatStore.getChat(chatId.value)
           console.log(`[ChatRoom] 服务器上找不到聊天 ${chatId.value}，已创建默认聊天`)
         }
       } catch (error) {
         console.error('[ChatRoom] 获取聊天信息失败:', error)
         // 出错时仍然创建一个默认聊天
-        chat = chatStore.initChat(chatId.value)
+        const newChat: ChatItem = { id: chatId.value, title: '错误聊天', messages: [] }
+        chatStore.addChat(newChat)
+        chat = chatStore.getChat(chatId.value)
       }
     }
 
