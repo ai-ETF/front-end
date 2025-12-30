@@ -5,7 +5,7 @@ import FilesView from '@/views/FilesView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import ChatLayout from '@/layouts/ChatLayout.vue'
+// 删除了 ChatLayout 的导入
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 
 const router = createRouter({
@@ -29,6 +29,17 @@ const router = createRouter({
       redirect: '/chat',
       children: [
         {
+          path: 'chat',
+          name: 'chat-home',
+          component: ChatHome,
+        },
+        {
+          path: 'chat/:id',
+          name: 'chat-room',
+          component: ChatRoom,
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'files',
           name: 'files',
           component: FilesView,
@@ -36,28 +47,10 @@ const router = createRouter({
         },
       ],
     },
-    // 聊天布局路由
-    {
-      path: '/chat',
-      component: ChatLayout,          
-      children: [
-        {
-          path: '',
-          name: 'chat-home',
-          component: ChatHome,
-        },
-        {
-          path: ':id',
-          name: 'chat-room',
-          component: ChatRoom,
-          meta: { requiresAuth: true },
-        },
-      ],
-    },
   ]
 })
 
-// 添加全局前置守卫
+// 添加全局前守卫
 router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useSupabaseAuth()
   
