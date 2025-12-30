@@ -25,7 +25,18 @@ export const useChatStore = defineStore("chat", {
       if (!chat.messages) {
         chat.messages = [];
       }
-      this.chats.push(chat);
+
+      // 检查是否已存在相同ID的聊天，避免重复添加
+      const existingIndex = this.chats.findIndex((c) => c.id === chat.id);
+      if (existingIndex !== -1) {
+        // 如果存在相同ID的聊天，更新它而不是添加新项
+        this.chats[existingIndex] = { ...this.chats[existingIndex], ...chat };
+        console.debug(`[ChatStore] 更新已存在的聊天 ${chat.id}`);
+      } else {
+        // 如果不存在相同ID的聊天，添加新项
+        this.chats.push(chat);
+        console.debug(`[ChatStore] 添加新聊天 ${chat.id}`);
+      }
     },
 
     // 向指定聊天添加消息
