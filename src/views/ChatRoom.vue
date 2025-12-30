@@ -116,11 +116,13 @@ const loadChatHistory = async () => {
           chat = chatStore.getChat(remoteChat.id)
           console.log(`[ChatRoom] 成功初始化聊天 ${chatId.value} 到本地 store`)
         } else {
+          // TODO：应该要抛出一个错误提示
+          console.warn(`[ChatRoom] 服务器上找不到聊天 ${chatId.value},请检查聊天ID是否正确`)
           // 如果服务器上也没有这个聊天，则创建一个默认的
-          const newChat: ChatItem = { id: chatId.value, title: '默认聊天', messages: [] }
-          chatStore.addChat(newChat)
-          chat = chatStore.getChat(chatId.value)
-          console.log(`[ChatRoom] 服务器上找不到聊天 ${chatId.value}，已创建默认聊天`)
+          // const newChat: ChatItem = { id: chatId.value, title: '默认聊天', messages: [] }
+          // chatStore.addChat(newChat)
+          // chat = chatStore.getChat(chatId.value)
+          // console.log(`[ChatRoom] 服务器上找不到聊天 ${chatId.value}，已创建默认聊天`)
         }
       } catch (error) {
         console.error('[ChatRoom] 获取聊天信息失败:', error)
