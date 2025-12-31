@@ -190,6 +190,46 @@
         </div>
       </div>
       
+      <!-- 上传文件模态框 -->
+      <div v-if="showUploadModal" class="modal-overlay" @click="closeUploadModal">
+        <div class="modal-content" @click.stop>
+          <h3>上传文件</h3>
+          <div class="upload-area" @dragover.prevent @drop.prevent="handleDrop" @dragover="onDragOver" @dragleave="onDragLeave" @drop="onDrop">
+            <input
+              ref="fileInputRef"
+              type="file"
+              multiple
+              @change="handleFileChange"
+              style="display: none;"
+            />
+            <div v-if="!isDragging" class="upload-prompt" @click="triggerFileInput">
+              <span class="icon">📤</span>
+              <p>点击选择文件或拖拽文件到此处</p>
+              <small>支持PDF、文档等格式</small>
+            </div>
+            <div v-else class="upload-dragging">
+              <p>释放鼠标以上传文件</p>
+            </div>
+          </div>
+          <div v-if="uploadQueue.length > 0" class="upload-queue">
+            <h4>待上传文件 ({{ uploadQueue.length }})</h4>
+            <ul>
+              <li v-for="(file, index) in uploadQueue" :key="index">
+                <span class="filename">{{ file.name }}</span>
+                <span class="filesize">{{ formatFileSize(file.size) }}</span>
+                <button @click="removeFromQueue(index)" class="btn-remove">×</button>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-actions">
+            <button @click="closeUploadModal" class="btn-cancel">取消</button>
+            <button @click="startUpload" :disabled="uploadQueue.length === 0 || isUploading" class="btn-confirm">
+              {{ isUploading ? `上传中 (${uploadedCount}/${uploadQueue.length})` : `开始上传 (${uploadQueue.length})` }}
+            </button>
+          </div>
+        </div>
+      </div>
+      
       <!-- 重命名模态框 -->
       <div v-if="renameFile" class="modal-overlay" @click="renameFile = null">
         <div class="modal-content" @click.stop>
@@ -240,10 +280,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useFileStore } from '@/stores/file'
-import { formatFileSize, formatDate, debounce } from '@/utils/fileUtils'
-import Breadcrumbs from './Breadcrumbs.vue'
-import FileListItem from './FileListItem.vue'
-import FileGridItem from './FileGridItem.vue'
+import { debounce, formatFileSize } from '@/utils/fileUtils'
+import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue'
+import FileListItem from '@/components/FileListItem/FileListItem.vue'
+import FileGridItem from '@/components/FileGridItem/FileGridItem.vue'
 import type { FileItem } from '@/types/file'
 
 const fileStore = useFileStore()
@@ -259,6 +299,13 @@ const renameFile = ref<FileItem | null>(null)
 const renameName = ref('')
 const moveFile = ref<FileItem | null>(null)
 const deleteFileItem = ref<FileItem | null>(null)
+
+// 上传相关
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploadQueue = ref<File[]>([])
+const isUploading = ref(false)
+const uploadedCount = ref(0)
+const isDragging = ref(false)
 
 // 计算属性
 const loading = computed(() => fileStore.loading)
@@ -406,7 +453,7 @@ async function performDelete() {
 
 async function downloadFile(file: FileItem) {
   try {
-    await (fileStore as any).downloadFile(file.id)
+    await fileStore.downloadFile(file.id)
   } catch (error) {
     console.error('Failed to download file:', error)
   }
@@ -441,6 +488,98 @@ function showContextMenu(event: MouseEvent, file: FileItem) {
 
 function refresh() {
   loadFolder()
+}
+
+// 上传功能
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files) {
+    const files = Array.from(target.files)
+    addFilesToQueue(files)
+  }
+}
+
+function handleDrop(event: DragEvent) {
+  const files = event.dataTransfer?.files
+  if (files) {
+    const fileArray = Array.from(files)
+    addFilesToQueue(fileArray)
+  }
+  isDragging.value = false
+}
+
+function addFilesToQueue(files: File[]) {
+  // 过滤重复文件
+  const validFiles = files.filter(file => 
+    !uploadQueue.value.some(f => f.name === file.name && f.size === file.size)
+  )
+  
+  // 添加到队列
+  uploadQueue.value.push(...validFiles)
+}
+
+function removeFromQueue(index: number) {
+  uploadQueue.value.splice(index, 1)
+}
+
+function closeUploadModal() {
+  showUploadModal.value = false
+  uploadQueue.value = []
+  isUploading.value = false
+  uploadedCount.value = 0
+}
+
+async function startUpload() {
+  if (uploadQueue.value.length === 0 || isUploading.value) return
+  
+  isUploading.value = true
+  uploadedCount.value = 0
+  
+  try {
+    // 逐个上传文件
+    for (const file of uploadQueue.value) {
+      try {
+        // 调用store的上传方法
+        await fileStore.uploadFile(file, currentFolderId.value)
+        uploadedCount.value++
+      } catch (error) {
+        console.error('上传单个文件失败:', file.name, error)
+        // 继续上传下一个文件
+      }
+    }
+    
+    // 关闭模态框
+    closeUploadModal()
+  } catch (error) {
+    console.error('上传过程中出错:', error)
+  } finally {
+    isUploading.value = false
+  }
+}
+
+// 拖拽事件处理
+function onDragOver() {
+  isDragging.value = true
+}
+
+function onDragLeave() {
+  // 防止快速进出时的问题
+  setTimeout(() => {
+    isDragging.value = false
+  }, 100)
+}
+
+function onDrop(event: DragEvent) {
+  const files = event.dataTransfer?.files
+  if (files) {
+    const fileArray = Array.from(files)
+    addFilesToQueue(fileArray)
+  }
+  isDragging.value = false
 }
 </script>
 

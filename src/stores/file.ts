@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
 import type { BreadcrumbItem, FileItem, UploadOptions } from "@/types/file";
 import {
   batchOperation,
@@ -11,6 +10,7 @@ import {
   renameFile,
   searchFiles,
   uploadFile,
+  downloadFile as downloadFileService,
 } from "@/services/fileService";
 import {
   validateFileName,
@@ -136,10 +136,12 @@ export const useFileStore = defineStore("file", {
 
           if (!folder) {
             // 从API获取文件夹信息
-            folder = await getFileInfo(currentId);
-            if (folder) {
-              this.folderMetaCache.set(currentId, folder);
+            const fileInfo = await getFileInfo(currentId);
+            if (!fileInfo) {
+              break; // 如果未找到文件信息，则中断循环
             }
+            folder = { ...fileInfo }; // 创建新对象以确保类型安全
+            this.folderMetaCache.set(currentId, folder);
           }
 
           if (folder) {
@@ -148,16 +150,28 @@ export const useFileStore = defineStore("file", {
               name: folder.name,
               path: `/files/${folder.id}`,
             });
-            currentId = folder.parent_id;
-          } else {
-            break;
+
+            // 安全地更新 currentId:如果进来就绝对不会是 null 或 undefined
+            currentId = folder.parent_id as string;
           }
         }
 
-        breadcrumbs.push(...pathSegments);
+        this.breadcrumbs = breadcrumbs;
       }
+    },
 
-      this.breadcrumbs = breadcrumbs;
+    /**
+     * 返回上一级
+     */
+    async goUp() {
+      if (this.breadcrumbs.length > 1) {
+        const parentCrumb = this.breadcrumbs[this.breadcrumbs.length - 2];
+        if (
+          parentCrumb && parentCrumb.id !== undefined && parentCrumb.id !== null
+        ) {
+          await this.fetchFiles(parentCrumb.id);
+        }
+      }
     },
 
     /**
@@ -384,16 +398,6 @@ export const useFileStore = defineStore("file", {
     },
 
     /**
-     * 返回上一级
-     */
-    async goUp() {
-      if (this.breadcrumbs.length > 1) {
-        const parentCrumb = this.breadcrumbs[this.breadcrumbs.length - 2];
-        await this.fetchFiles(parentCrumb.id);
-      }
-    },
-
-    /**
      * 清除文件相关缓存
      */
     clearFileCache(fileId: string) {
@@ -475,6 +479,19 @@ export const useFileStore = defineStore("file", {
         throw error;
       } finally {
         this.loading = false;
+      }
+    },
+
+    /**
+     * 下载文件
+     */
+    async downloadFile(fileId: string) {
+      try {
+        await downloadFileService(fileId);
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : "Download failed";
+        console.error("Error downloading file:", error);
+        throw error;
       }
     },
 

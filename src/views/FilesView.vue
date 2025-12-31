@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import FileManager from '@/components/FileManager.vue'
+import FileManager from '@/components/FileManager/FileManager.vue'
 </script>
 
 <style scoped>
