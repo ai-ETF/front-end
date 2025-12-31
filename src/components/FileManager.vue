@@ -296,8 +296,14 @@ async function loadFolder() {
   }
 }
 
-function navigateTo(folderId: string | null) {
+function navigateTo(item: any, index?: number) {
   // 在实际应用中，这里会触发路由变化
+  const folderId =
+    typeof item === 'string'
+      ? item
+      : item && (item as any).id
+      ? (item as any).id
+      : null
   fileStore.fetchFiles(folderId)
 }
 
@@ -342,7 +348,7 @@ async function createNewFolder() {
   if (!newFolderName.value.trim()) return
   
   try {
-    await fileStore.createFolder(newFolderName.value.trim(), currentFolderId.value)
+    await (fileStore as any).createFolder(newFolderName.value.trim(), currentFolderId.value)
     newFolderName.value = ''
     showNewFolderModal.value = false
   } catch (error) {
@@ -400,7 +406,7 @@ async function performDelete() {
 
 async function downloadFile(file: FileItem) {
   try {
-    await fileStore.downloadFile(file.id)
+    await (fileStore as any).downloadFile(file.id)
   } catch (error) {
     console.error('Failed to download file:', error)
   }
