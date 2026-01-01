@@ -11,6 +11,7 @@
           title="返回上一级"
         >
           <span class="icon">←</span>
+          <image :src="arrowLeft" alt="Back" />
         </button>
         
         <!-- 面包屑导航 -->
@@ -31,7 +32,8 @@
             @keyup.enter="performSearch"
           />
           <button @click="performSearch" class="btn-search">
-            <span class="icon">🔍</span>
+            <!-- <span class="icon">🔍</span> -->
+            <img :src="search" alt="Search" class="icon" />
           </button>
         </div>
         
@@ -42,25 +44,29 @@
             :class="{ active: viewMode === 'grid' }"
             title="网格视图"
           >
-            <span class="icon">⏹</span>
+            <!-- <span class="icon">⏹</span> -->
+            <img :src="viewGrid" alt="Grid View" class="icon" />
           </button>
           <button
             @click="viewMode = 'list'"
             :class="{ active: viewMode === 'list' }"
             title="列表视图"
           >
-            <span class="icon">≡</span>
+            <!-- <span class="icon">≡</span> -->
+            <img :src="list" alt="List View" class="icon" />
           </button>
         </div>
         
         <!-- 操作按钮 -->
         <div class="action-buttons">
           <button @click="showNewFolderModal = true" class="btn-new-folder">
-            <span class="icon">📁</span>
+            <!-- <span class="icon">📁</span> -->
+            <image :src="folderPlus" alt="New Folder" class="icon" />
             新建文件夹
           </button>
           <button @click="showUploadModal = true" class="btn-upload">
-            <span class="icon">📤</span>
+            <!-- <span class="icon">📤</span> -->
+            <img :src="upload" alt="Upload" class="icon" />
             上传文件
           </button>
         </div>
@@ -74,16 +80,20 @@
       </div>
       <div class="batch-actions">
         <button @click="downloadSelected" title="下载">
-          <span class="icon">⬇</span>
+          <!-- <span class="icon">⬇</span> -->
+          <img :src="download" alt="Download" class="icon" />
         </button>
         <button @click="moveSelected" title="移动">
-          <span class="icon">⇄</span>
+          <!-- <span class="icon">⇄</span> -->
+          <img :src="move" alt="Move" class="icon" />
         </button>
         <button @click="deleteSelected" title="删除" class="danger">
-          <span class="icon">🗑</span>
+          <!-- <span class="icon">🗑</span> -->
+          <img :src="deleteIcon" alt="Delete" class="icon" />
         </button>
         <button @click="clearSelection" title="取消选择">
-          <span class="icon">×</span>
+          <!-- <span class="icon">×</span> -->
+          <img :src="xmark" alt="Clear Selection" class="icon" />
         </button>
       </div>
     </div>
@@ -105,7 +115,8 @@
       
       <!-- 空状态 -->
       <div v-else-if="filteredFiles.length === 0" class="empty-state">
-        <div class="empty-icon">📄</div>
+        <!-- <div class="empty-icon">📄</div> -->
+        <img :src="fileSVG" alt="No Files" class="empty-icon" />
         <p v-if="searchQuery">没有找到匹配的文件</p>
         <p v-else>这个文件夹是空的</p>
         <button v-if="!searchQuery" @click="showUploadModal = true" class="btn-upload-first">
@@ -203,7 +214,8 @@
               style="display: none;"
             />
             <div v-if="!isDragging" class="upload-prompt" @click="triggerFileInput">
-              <span class="icon">📤</span>
+              <!-- <span class="icon">📤</span> -->
+              <img :src="upload" alt="Upload" class="upload-icon" />
               <p>点击选择文件或拖拽文件到此处</p>
               <small>支持PDF、文档等格式</small>
             </div>
@@ -217,7 +229,8 @@
               <li v-for="(file, index) in uploadQueue" :key="index">
                 <span class="filename">{{ file.name }}</span>
                 <span class="filesize">{{ formatFileSize(file.size) }}</span>
-                <button @click="removeFromQueue(index)" class="btn-remove">×</button>
+                <!-- <button @click="removeFromQueue(index)" class="btn-remove">×</button> -->
+                <img :src="xmark" alt="Remove" class="btn-remove" @click="removeFromQueue(index)" />
               </li>
             </ul>
           </div>
@@ -285,6 +298,19 @@ import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue'
 import FileListItem from '@/components/FileListItem/FileListItem.vue'
 import FileGridItem from '@/components/FileGridItem/FileGridItem.vue'
 import type { FileItem } from '@/types/file'
+
+// SVG 图标导入
+import arrowLeft from '@/assets/svg/arrow-left.svg'
+import search from '@/assets/svg/search.svg'
+import viewGrid from '@/assets/svg/view-grid.svg'
+import list from '@/assets/svg/list.svg'
+import folderPlus from '@/assets/svg/folder.svg'
+import upload from '@/assets/svg/upload-square.svg'
+import download from '@/assets/svg/download-square.svg'
+import move from '@/assets/svg/move.svg'
+import deleteIcon from '@/assets/svg/delete.svg'
+import xmark from '@/assets/svg/xmark.svg'
+import fileSVG from '@/assets/svg/txt.svg'
 
 const fileStore = useFileStore()
 
@@ -614,6 +640,9 @@ function onDrop(event: DragEvent) {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-back:hover {
@@ -647,6 +676,9 @@ function onDrop(event: DragEvent) {
   border: none;
   cursor: pointer;
   padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .view-toggle {
@@ -660,6 +692,9 @@ function onDrop(event: DragEvent) {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .view-toggle button.active {
@@ -716,6 +751,9 @@ function onDrop(event: DragEvent) {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .batch-actions button:hover {
@@ -758,9 +796,20 @@ function onDrop(event: DragEvent) {
 }
 
 .error-icon,
-.empty-icon {
-  font-size: 3rem;
+.empty-icon,
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  color: #6c757d;
   opacity: 0.5;
+}
+
+.error-icon {
+  color: #dc3545;
+}
+
+.empty-icon {
+  color: #6c757d;
 }
 
 .btn-retry,
@@ -858,9 +907,99 @@ function onDrop(event: DragEvent) {
 .btn-confirm {
   background: #007bff;
   color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .btn-confirm.danger {
   background: #dc3545;
+}
+
+/* 上传区域样式 */
+.upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.upload-area:hover {
+  border-color: #007bff;
+}
+
+.upload-dragging {
+  border-color: #007bff;
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+.upload-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-queue {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+}
+
+.upload-queue h4 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.upload-queue ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.upload-queue li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filename {
+  flex: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.filesize {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin: 0 0.5rem;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #dc3545;
+  padding: 0.25rem;
+}
+
+.icon-small {
+  width: 16px;
+  height: 16px;
+}
+
+.spinning-icon {
+  animation: spin 1s linear infinite;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
 }
 </style>
