@@ -53,6 +53,7 @@ export const syncMessagesToLocal = (chatId: number, remoteMessages: RemoteChatMe
       id: String(remoteMessage.id),
       text: remoteMessage.content || '',
       createdAt: new Date(remoteMessage.created_at as string).getTime(),
+      timestamp: new Date(remoteMessage.created_at as string), // 添加缺失的 timestamp 属性
       isuser: remoteMessage.role === 'user'
     }
     

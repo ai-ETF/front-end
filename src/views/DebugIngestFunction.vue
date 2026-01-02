@@ -67,8 +67,8 @@ const error = ref('');
 
 // 组件挂载时设置默认值
 onMounted(() => {
-  storagePath.value = 'b978e5f5-2908-4dc5-991e-5c4371cb60b0/uploads/1767274387924-fh8z621.pdf';
-  fileName.value = '南方';
+  storagePath.value = 'b978e5f5-2908-4dc5-991e-5c4371cb60b0/uploads/1767324018342-7fua308.txt';
+  fileName.value = 'doc';
 });
 
 const testCallIngestDocumentFunction = async () => {
