@@ -1,15 +1,17 @@
 <template>
   <div class="files-container">
-    <h1>文档库</h1>
-    <p>这里是文档库页面</p>
+    <FileManager />
   </div>
 </template>
 
 <script setup lang="ts">
+import FileManager from '@/components/FileManager/FileManager.vue'
 </script>
 
 <style scoped>
 .files-container {
-  padding: 24px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

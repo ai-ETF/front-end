@@ -179,6 +179,12 @@ const props = withDefaults(defineProps<Props>(), {
       icon: UploadOutlined,  // 使用 UploadOutlined 图标组件
       label: '文档库',       // 显示文本
       path: '/files'         // 对应的路由路径
+    },
+    {
+      key: '3',              // 第三个菜单项的唯一标识
+      icon: SettingOutlined, // 使用 SettingOutlined 图标组件
+      label: '调试页面',     // 显示文本
+      path: '/debug-ingest'  // 对应的路由路径
     }
   ],
   // 默认不传入 collapsed 值
@@ -279,16 +285,19 @@ const confirmDelete = async () => {
       return
     }
     
-    // 调用删除函数
-    await deleteChat(modalState.deleteChatItem.id)
+    // 使用syncDeleteChatToRemote来确保正确同步删除操作到远程和本地
+    const { syncDeleteChatToRemote } = await import('@/utils/syncToRemote')
+    const success = await syncDeleteChatToRemote(modalState.deleteChatItem.id, deleteChat)
+    
+    if (!success) {
+      console.error('删除聊天失败')
+      return
+    }
     
     // 如果当前正在查看这个聊天，导航到主页
     if (routeId.value === modalState.deleteChatItem.id) {
       router.push('/chat')
     }
-    
-    // 从本地 store 中删除
-    chatStore.deleteChat(modalState.deleteChatItem.id)
     
     console.log('聊天已删除:', modalState.deleteChatItem.id)
   } catch (error) {
@@ -329,7 +338,7 @@ onMounted(() => {
 
 // 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
 // TODO：未来要考虑修改
-import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { UploadOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons-vue'
 </script>
 
 
@@ -588,10 +597,10 @@ import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
 
 /* 选中状态 */
 .chat-item.active {
-  background-color: #a84949; /* 中灰色突出选中 */
+  background-color: #eaeaea; /* 中灰色突出选中 */
   color: #000;
   font-weight: 500; /* 加粗文字，提高视觉识别度 */
-  box-shadow: inset 2px 0 0 #8c8c8c; /* 左侧深灰色条，高亮选中 */
+  /* box-shadow: inset 2px 0 0 #8c8c8c; 左侧深灰色条，高亮选中 */
   border-radius: 6px; /* 保持圆角一致 */
   transition: all 0.2s ease;
 }
@@ -621,7 +630,6 @@ import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
   margin-top: auto;
   padding: 8px;
 }
-
 </style>
 
 

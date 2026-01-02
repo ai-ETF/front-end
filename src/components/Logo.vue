@@ -10,9 +10,6 @@
  * 使用了 Vue 3 的 Composition API 和 TypeScript
  */
 
-// 从 Vue 导入必要的函数
-import { withDefaults, defineProps, defineEmits } from 'vue'
-
 // 导入侧边栏折叠和展开的 SVG 图标
 import sider_collapsed from '@/assets/svg/sidebar-collapse.svg'
 import sider_expand from '@/assets/svg/sidebar-expand.svg'

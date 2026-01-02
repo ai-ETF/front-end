@@ -84,13 +84,13 @@ const SIDEBAR_COLLAPSED_WIDTH = 52
         Header 顶部标题栏
         class="site-layout-header" - 应用自定义样式类
       -->
-      <Header class="site-layout-header">
+      <!-- <Header class="site-layout-header"> -->
         <!-- 
           标题文本
           class="header-title" - 应用自定义样式类
         -->
-        <span class="header-title">小E你的ETF智能助手</span>
-      </Header>
+        <!-- <span class="header-title">小E你的ETF智能助手</span> -->
+      <!-- </Header> -->
       
       <!-- 
         Content 内容区域，用于显示路由对应的页面组件
