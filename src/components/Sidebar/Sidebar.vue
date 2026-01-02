@@ -179,6 +179,12 @@ const props = withDefaults(defineProps<Props>(), {
       icon: UploadOutlined,  // 使用 UploadOutlined 图标组件
       label: '文档库',       // 显示文本
       path: '/files'         // 对应的路由路径
+    },
+    {
+      key: '3',              // 第三个菜单项的唯一标识
+      icon: SettingOutlined, // 使用 SettingOutlined 图标组件
+      label: '调试页面',     // 显示文本
+      path: '/debug-ingest'  // 对应的路由路径
     }
   ],
   // 默认不传入 collapsed 值
@@ -332,7 +338,7 @@ onMounted(() => {
 
 // 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
 // TODO：未来要考虑修改
-import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { UploadOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons-vue'
 </script>
 
 
@@ -624,7 +630,7 @@ import { UploadOutlined, UserOutlined } from '@ant-design/icons-vue'
   margin-top: auto;
   padding: 8px;
 }
-
 </style>
+
 
 

@@ -5,6 +5,7 @@ import FilesView from '@/views/FilesView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import DebugIngestFunction from '@/views/DebugIngestFunction.vue' // 导入调试组件
 // 删除了 ChatLayout 的导入
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 
@@ -43,6 +44,12 @@ const router = createRouter({
           path: 'files',
           name: 'files',
           component: FilesView,
+          meta: { requiresAuth: true },
+        },
+        {
+          path: '/debug-ingest',
+          name: 'debug-ingest',
+          component: DebugIngestFunction,
           meta: { requiresAuth: true },
         },
       ],

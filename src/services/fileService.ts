@@ -107,11 +107,11 @@ export async function uploadFile(
   // 获取当前认证用户信息
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
-    console.error('获取用户信息失败:', userError);
+    console.error("获取用户信息失败:", userError);
     throw new Error("User not authenticated");
   }
-  
-  console.debug('当前用户ID:', user.id);
+
+  console.debug("当前用户ID:", user.id);
 
   let fileName: string | undefined = undefined;
 
@@ -133,7 +133,7 @@ export async function uploadFile(
 
     // 如果上传失败，抛出错误
     if (uploadError) {
-      console.error('文件上传到存储失败:', uploadError);
+      console.error("文件上传到存储失败:", uploadError);
       throw uploadError;
     }
 
@@ -157,15 +157,15 @@ export async function uploadFile(
 
     // 如果数据库操作失败，抛出错误
     if (error) {
-      console.error('数据库插入失败:', error);
-      console.error('错误详情:', {
+      console.error("数据库插入失败:", error);
+      console.error("错误详情:", {
         message: error.message,
         details: error.details,
         hint: error.hint,
-        code: error.code
+        code: error.code,
       });
       throw error;
-    };
+    }
 
     // 返回标准化的 FileItem 对象给调用方
     return {
@@ -467,11 +467,11 @@ export async function downloadFile(fileId: string): Promise<void> {
     URL.revokeObjectURL(url);
   } catch (error) {
     console.error("Error downloading file:", error);
-    console.error('错误详情:', {
+    console.error("错误详情:", {
       message: (error as Error).message,
       details: (error as any).details,
       hint: (error as any).hint,
-      code: (error as any).code
+      code: (error as any).code,
     });
     throw error;
   }
@@ -613,3 +613,58 @@ async function checkCircularReference(
   }
 }
 
+/**
+ * 调用 Supabase 的 ingest-document-ts 函数处理文档
+ * @param storagePath 文档在 Supabase 存储桶中的路径
+ * @param fileName 文件名
+ */
+export async function callIngestDocumentFunction(
+  storagePath: string,
+  fileName: string,
+) {
+  try {
+    // 获取当前用户的 JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("无法获取用户认证 token");
+      throw new Error("无法获取用户认证 token");
+    }
+
+    // 准备请求体
+    const requestBody = {
+      storage_path: storagePath,
+      file_name: fileName,
+      source: fileName, // 如果没有提供 source，默认使用文件名
+    };
+
+    // 发送请求到 Supabase 函数
+    const response = await fetch(
+      "https://wiynpkkfsiiqnofhifhs.supabase.co/functions/v1/ingest-document-ts",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    // 检查响应状态
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+    console.log("文档处理成功:", result);
+    return result; // 返回结果
+  } catch (error) {
+    console.error("调用文档处理函数失败:", error);
+    throw error; // 抛出错误，让调用方处理
+  }
+}

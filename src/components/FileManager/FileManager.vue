@@ -298,6 +298,7 @@ import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue'
 import FileListItem from '@/components/FileListItem/FileListItem.vue'
 import FileGridItem from '@/components/FileGridItem/FileGridItem.vue'
 import type { FileItem } from '@/types/file'
+import { callIngestDocumentFunction } from '@/services/fileService' // 导入文档处理函数
 
 // SVG 图标导入
 import arrowLeft from '@/assets/svg/arrow-left.svg'
@@ -569,9 +570,14 @@ async function startUpload() {
     // 逐个上传文件
     for (const file of uploadQueue.value) {
       try {
-        // 调用store的上传方法
-        await fileStore.uploadFile(file, currentFolderId.value)
+        // 调用store的上传方法，获取上传后的文件信息
+        const uploadedFile = await fileStore.uploadFile(file, currentFolderId.value)
         uploadedCount.value++
+        
+        // 上传成功后，调用 Supabase 的文档处理函数
+        if (uploadedFile && uploadedFile.storage_path) {
+          await callIngestDocumentFunction(uploadedFile.storage_path, uploadedFile.name)
+        }
       } catch (error) {
         console.error('上传单个文件失败:', file.name, error)
         // 继续上传下一个文件
