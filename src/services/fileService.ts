@@ -119,10 +119,12 @@ export async function uploadFile(
     // 1. 上传文件到存储桶
     // 提取文件扩展名（如 'pdf', 'txt'）
     const fileExt = file.name.split(".").pop();
-    // 生成唯一文件名：时间戳 + 随机字符串 + 原始扩展名
-    fileName = `${Date.now()}-${
-      Math.random().toString(36).slice(2, 9)
-    }.${fileExt}`;
+    // 生成唯一文件名：时间戳 + 随机字符串 + 原始扩展名，可能会触发Supbase的安全机制，重命名
+    // fileName = `${Date.now()}-${
+    //   Math.random().toString(36).slice(2, 9)
+    // }.${fileExt}`;
+
+    fileName = `${Date.now()}_${user.id.slice(0, 8)}.${fileExt}`;
     // 构建存储路径：用户ID/ uploads / 唯一文件名
     const filePath = `${user.id}/uploads/${fileName}`;
 
