@@ -55,61 +55,63 @@ AI问答功能调试页面
       </div>
     </div>
     
-    <!-- streamFromAI 结果 -->
-    <div class="service-result-container">
-      <h3>streamFromAI 结果</h3>
-      
-      <!-- streamFromAI 成功响应容器 -->
-      <div v-if="successResultStreamFromAI" class="success-container">
-        <h4>成功响应:</h4>
-        <pre class="success">{{ JSON.stringify(successResultStreamFromAI, null, 2) }}</pre>
+    <div class="comparison-container">
+      <!-- 左侧：streamFromAI 结果 -->
+      <div class="service-result-container">
+        <h3>streamFromAI 结果</h3>
+        
+        <!-- streamFromAI 成功响应容器 -->
+        <div v-if="successResultStreamFromAI" class="success-container">
+          <h4>成功响应:</h4>
+          <pre class="success">{{ JSON.stringify(successResultStreamFromAI, null, 2) }}</pre>
+        </div>
+        
+        <!-- streamFromAI 错误响应容器 -->
+        <div v-if="errorResultStreamFromAI" class="error-container">
+          <h4>错误响应:</h4>
+          <pre class="error">{{ JSON.stringify(errorResultStreamFromAI, null, 2) }}</pre>
+        </div>
+        
+        <!-- streamFromAI 其他错误容器 -->
+        <div v-if="errorStreamFromAI" class="error-container">
+          <h4>错误信息:</h4>
+          <pre class="error">{{ errorStreamFromAI }}</pre>
+        </div>
+        
+        <!-- streamFromAI 响应容器 -->
+        <div v-if="aiResponseStreamFromAI" class="ai-response-container">
+          <h4>AI响应:</h4>
+          <div class="ai-response">{{ aiResponseStreamFromAI }}</div>
+        </div>
       </div>
       
-      <!-- streamFromAI 错误响应容器 -->
-      <div v-if="errorResultStreamFromAI" class="error-container">
-        <h4>错误响应:</h4>
-        <pre class="error">{{ JSON.stringify(errorResultStreamFromAI, null, 2) }}</pre>
-      </div>
-      
-      <!-- streamFromAI 其他错误容器 -->
-      <div v-if="errorStreamFromAI" class="error-container">
-        <h4>错误信息:</h4>
-        <pre class="error">{{ errorStreamFromAI }}</pre>
-      </div>
-      
-      <!-- streamFromAI 响应容器 -->
-      <div v-if="aiResponseStreamFromAI" class="ai-response-container">
-        <h4>AI响应:</h4>
-        <div class="ai-response">{{ aiResponseStreamFromAI }}</div>
-      </div>
-    </div>
-    
-    <!-- streamFromAIEdge 结果 -->
-    <div class="service-result-container">
-      <h3>streamFromAIEdge 结果</h3>
-      
-      <!-- streamFromAIEdge 成功响应容器 -->
-      <div v-if="successResultStreamFromAIEdge" class="success-container">
-        <h4>成功响应:</h4>
-        <pre class="success">{{ JSON.stringify(successResultStreamFromAIEdge, null, 2) }}</pre>
-      </div>
-      
-      <!-- streamFromAIEdge 错误响应容器 -->
-      <div v-if="errorResultStreamFromAIEdge" class="error-container">
-        <h4>错误响应:</h4>
-        <pre class="error">{{ JSON.stringify(errorResultStreamFromAIEdge, null, 2) }}</pre>
-      </div>
-      
-      <!-- streamFromAIEdge 其他错误容器 -->
-      <div v-if="errorStreamFromAIEdge" class="error-container">
-        <h4>错误信息:</h4>
-        <pre class="error">{{ errorStreamFromAIEdge }}</pre>
-      </div>
-      
-      <!-- streamFromAIEdge 响应容器 -->
-      <div v-if="aiResponseStreamFromAIEdge" class="ai-response-container">
-        <h4>AI响应:</h4>
-        <div class="ai-response">{{ aiResponseStreamFromAIEdge }}</div>
+      <!-- 右侧：streamFromAIEdge 结果 -->
+      <div class="service-result-container">
+        <h3>streamFromAIEdge 结果</h3>
+        
+        <!-- streamFromAIEdge 成功响应容器 -->
+        <div v-if="successResultStreamFromAIEdge" class="success-container">
+          <h4>成功响应:</h4>
+          <pre class="success">{{ JSON.stringify(successResultStreamFromAIEdge, null, 2) }}</pre>
+        </div>
+        
+        <!-- streamFromAIEdge 错误响应容器 -->
+        <div v-if="errorResultStreamFromAIEdge" class="error-container">
+          <h4>错误响应:</h4>
+          <pre class="error">{{ JSON.stringify(errorResultStreamFromAIEdge, null, 2) }}</pre>
+        </div>
+        
+        <!-- streamFromAIEdge 其他错误容器 -->
+        <div v-if="errorStreamFromAIEdge" class="error-container">
+          <h4>错误信息:</h4>
+          <pre class="error">{{ errorStreamFromAIEdge }}</pre>
+        </div>
+        
+        <!-- streamFromAIEdge 响应容器 -->
+        <div v-if="aiResponseStreamFromAIEdge" class="ai-response-container">
+          <h4>AI响应:</h4>
+          <div class="ai-response">{{ aiResponseStreamFromAIEdge }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -173,82 +175,71 @@ const testAskAI = async () => {
       return;
     }
     
-    // 并行调用两个服务
-    const [streamFromAIResult, streamFromAIEdgeResult] = await Promise.allSettled([
-      // 调用 streamFromAI
-      new Promise((resolve, reject) => {
-        let responseText = '';
-        
-        // 构建消息数组格式，符合streamFromAI函数要求
-        const messages = [{
-          id: 'temp-user-message',
-          text: currentQuestion,
-          isuser: true,
-          timestamp: new Date()
-        }];
-        
-        streamFromAI(
-          messages,
-          (chunk) => {
-            // 累积AI响应
-            responseText += chunk;
-            aiResponseStreamFromAI.value = responseText;
-          }
-        ).then(resolve).catch(reject);
-      }),
+    // 先调用 streamFromAI
+    try {
+      let responseTextStreamFromAI = '';
       
-      // 调用 streamFromAIEdge
-      new Promise((resolve, reject) => {
-        let responseText = '';
-        
-        streamFromAIEdge(
-          currentQuestion, 
-          (chunk) => {
-            // 累积AI响应
-            responseText += chunk;
-            aiResponseStreamFromAIEdge.value = responseText;
-          },
-          docId.value || undefined
-        ).then(resolve).catch(reject);
-      })
-    ]);
-    
-    // 处理 streamFromAI 的结果
-    if (streamFromAIResult.status === 'fulfilled') {
-      const result = streamFromAIResult.value as { success: boolean; error?: string };
+      // 构建消息数组格式，符合streamFromAI函数要求
+      const messages = [{
+        id: 'temp-user-message',
+        text: currentQuestion,
+        isuser: true,
+        timestamp: new Date()
+      }];
       
-      if (result && result.error) {
-        errorResultStreamFromAI.value = result;
-        console.error('streamFromAI 服务返回错误:', result);
-      } else if (result && result.success) {
-        successResultStreamFromAI.value = result;
-        console.log('streamFromAI 问答调用成功:', result);
+      const streamFromAIResult = await streamFromAI(
+        messages,
+        (chunk) => {
+          // 累积AI响应
+          responseTextStreamFromAI += chunk;
+          aiResponseStreamFromAI.value = responseTextStreamFromAI;
+        }
+      );
+      
+      // 处理 streamFromAI 的结果
+      if (streamFromAIResult && streamFromAIResult.error) {
+        errorResultStreamFromAI.value = streamFromAIResult;
+        console.error('streamFromAI 服务返回错误:', streamFromAIResult);
+      } else if (streamFromAIResult && streamFromAIResult.success) {
+        successResultStreamFromAI.value = streamFromAIResult;
+        console.log('streamFromAI 问答调用成功:', streamFromAIResult);
       } else {
-        console.warn('streamFromAI 服务返回未知格式响应:', result);
-        successResultStreamFromAI.value = result;
+        console.warn('streamFromAI 服务返回未知格式响应:', streamFromAIResult);
+        successResultStreamFromAI.value = streamFromAIResult;
       }
-    } else {
-      errorStreamFromAI.value = streamFromAIResult.reason?.message || 'streamFromAI 询问过程中发生未知错误';
-      console.error('streamFromAI 询问失败:', streamFromAIResult.reason);
+    } catch (error) {
+      errorStreamFromAI.value = (error as Error)?.message || 'streamFromAI 询问过程中发生未知错误';
+      console.error('streamFromAI 询问失败:', error);
     }
     
-    // 处理 streamFromAIEdge 的结果
-    if (streamFromAIEdgeResult.status === 'fulfilled') {
-      const result = streamFromAIEdgeResult.value as { success: boolean; error?: string };
+    // 然后调用 streamFromAIEdge
+    try {
+      let responseTextStreamFromAIEdge = '';
       
-      if (result && result.error) {
-        errorResultStreamFromAIEdge.value = result;
-        console.error('streamFromAIEdge 服务返回错误:', result);
-      } else if (result && result.success) {
-        successResultStreamFromAIEdge.value = result;
-        console.log('streamFromAIEdge 问答调用成功:', result);
+      const streamFromAIEdgeResult = await streamFromAIEdge(
+        currentQuestion, 
+        (chunk) => {
+          // 累积AI响应
+          responseTextStreamFromAIEdge += chunk;
+          aiResponseStreamFromAIEdge.value = responseTextStreamFromAIEdge;
+        },
+        docId.value || undefined
+      );
+      
+      // 处理 streamFromAIEdge 的结果
+      if (streamFromAIEdgeResult && streamFromAIEdgeResult.error) {
+        errorResultStreamFromAIEdge.value = streamFromAIEdgeResult;
+        console.error('streamFromAIEdge 服务返回错误:', streamFromAIEdgeResult);
+      } else if (streamFromAIEdgeResult && streamFromAIEdgeResult.success) {
+        successResultStreamFromAIEdge.value = streamFromAIEdgeResult;
+        console.log('streamFromAIEdge 问答调用成功:', streamFromAIEdgeResult);
       } else {
-        console.warn('streamFromAIEdge 服务返回未知格式响应:', result);
-        successResultStreamFromAIEdge.value = result;
+        console.warn('streamFromAIEdge 服务返回未知格式响应:', streamFromAIEdgeResult);
+        successResultStreamFromAIEdge.value = streamFromAIEdgeResult;
       }
-    } else {
-      errorStreamFromAIEdge.value = streamFromAIEdgeResult.reason?.message || 'streamFromAIEdge 询问过程中发生未知错误';
-      console.error('streamFromAIEdge 询问失败:', streamFromAIEdgeResult.reason);
+    } catch (error) {
+      errorStreamFromAIEdge.value = (error as Error)?.message || 'streamFromAIEdge 询问过程中发生未知错误';
+      console.error('streamFromAIEdge 询问失败:', error);
     }
     
   } catch (err: any) {
@@ -280,7 +271,7 @@ const resetForm = () => {
 
 <style scoped>
 .debug-ai-container {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -364,12 +355,19 @@ const resetForm = () => {
   background: #545b62;
 }
 
-.service-result-container {
+.comparison-container {
+  display: flex;
+  gap: 20px;
   margin-top: 2rem;
+}
+
+.service-result-container {
+  flex: 1;
   padding: 1.5rem;
   border: 1px solid #dee2e6;
   border-radius: 8px;
   background-color: #f8f9fa;
+  min-width: 0; /* 防止flex项目溢出 */
 }
 
 .service-result-container h3 {
@@ -377,6 +375,7 @@ const resetForm = () => {
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 2px solid #e9ecef;
+  text-align: center;
 }
 
 .result-container, .error-container, .success-container, .ai-response-container {
@@ -408,6 +407,8 @@ const resetForm = () => {
   padding: 1rem;
   background: white;
   border-radius: 4px;
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .result-container h3, .error-container h3, .success-container h3, .ai-response-container h3 {
@@ -433,5 +434,15 @@ const resetForm = () => {
 .error {
   background-color: #f8d7da;
 }
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .comparison-container {
+    flex-direction: column;
+  }
+  
+  .debug-ai-container {
+    padding: 1rem;
+  }
+}
 </style>
-```
