@@ -61,10 +61,10 @@ AI问答功能调试页面
         <h3>streamFromAI 结果</h3>
         
         <!-- streamFromAI 成功响应容器 -->
-        <div v-if="successResultStreamFromAI" class="success-container">
-          <h4>成功响应:</h4>
-          <pre class="success">{{ JSON.stringify(successResultStreamFromAI, null, 2) }}</pre>
-        </div>
+        <!-- <div v-if="successResultStreamFromAI" class="success-container"> -->
+          <!-- <h4>成功响应:</h4> -->
+          <!-- <pre class="success">{{ JSON.stringify(successResultStreamFromAI, null, 2) }}</pre> -->
+        <!-- </div> -->
         
         <!-- streamFromAI 错误响应容器 -->
         <div v-if="errorResultStreamFromAI" class="error-container">
@@ -90,10 +90,10 @@ AI问答功能调试页面
         <h3>streamFromAIEdge 结果</h3>
         
         <!-- streamFromAIEdge 成功响应容器 -->
-        <div v-if="successResultStreamFromAIEdge" class="success-container">
-          <h4>成功响应:</h4>
-          <pre class="success">{{ JSON.stringify(successResultStreamFromAIEdge, null, 2) }}</pre>
-        </div>
+        <!-- <div v-if="successResultStreamFromAIEdge" class="success-container"> -->
+          <!-- <h4>成功响应:</h4> -->
+          <!-- <pre class="success">{{ JSON.stringify(successResultStreamFromAIEdge, null, 2) }}</pre> -->
+        <!-- </div> -->
         
         <!-- streamFromAIEdge 错误响应容器 -->
         <div v-if="errorResultStreamFromAIEdge" class="error-container">
