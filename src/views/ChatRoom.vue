@@ -34,7 +34,7 @@ import sentSvg from '@/assets/svg/send.svg'
 import { useChatMessages } from '@/composables/useChatMessages'
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import { syncChatDetailsToLocal, syncMessageToRemote } from '@/utils/chatSync'
-import { streamFromAI } from '@/services/aiService'
+import { streamFromAIEdge } from '@/services/aiService'
 
 // 控制是否正在等待AI响应
 const isWaitingForAI = ref(false)
@@ -287,11 +287,23 @@ const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: stri
   try {
     console.log('[ChatRoom] Sending messages to AI');
     
-    const result = await streamFromAI(
-      chatStore.getChat(chatIdValue)?.messages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.createdAt)
-      })) || [],
+    // 获取聊天消息
+    const chat = chatStore.getChat(chatIdValue)
+    if (!chat) {
+      throw new Error('聊天不存在')
+    }
+    
+    // 获取最后一条用户消息作为问题
+    const lastUserMessage = chat.messages
+      .filter(msg => msg.isuser)
+      .slice(-1)[0];
+    
+    if (!lastUserMessage) {
+      throw new Error('没有找到用户消息')
+    }
+    
+    const result = await streamFromAIEdge(
+      lastUserMessage.text,
       (chunk: string) => {
         // ✅ 直接更新响应式变量，watch会监听到并更新store
         aiMessageContent.value += chunk;
@@ -300,8 +312,8 @@ const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: stri
         // 但要注意：如果store更新不够快，这里可能会有延迟
         // 所以我们主要依赖watch
       },
-      abortController.value.signal,
-      chatIdValue
+      undefined, // doc_id 参数，暂时不使用
+      abortController.value.signal
     );
 
     if (!result.success) {
