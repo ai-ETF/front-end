@@ -44,7 +44,7 @@ import { useChatMessages } from '@/composables/useChatMessages'
 import { useSupabaseAuth } from '@/composables/useSupabaseAuth'
 import { message } from 'ant-design-vue'
 /* 导入流式AI服务和同步工具 */
-import { streamFromAI } from '@/services/aiService'
+import { streamFromAIEdge } from '@/services/aiService'
 import { syncMessageToRemote } from '@/utils/chatSync'
 
 /* 控制是否正在等待AI响应 */
@@ -177,7 +177,7 @@ const onSend = async (msg: string) => {
 // 发送消息给AI并接收回复
 const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: string) => {
   if (isWaitingForAI.value) {
-    console.log('[ChatRoom] AI response already in progress, ignoring new request.');
+    console.log('[ChatHome] AI response already in progress, ignoring new request.');
     return;
   }
 
@@ -203,7 +203,7 @@ const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: stri
   
   // 使用watch来监听内容变化并更新store
   watch(aiMessageContent, (newContent) => {
-    console.log('[ChatRoom] AI内容更新:', newContent.length, '字符');
+    console.log('[ChatHome] AI内容更新:', newContent.length, '字符');
     
     // ✅ 使用store的更新方法
     chatStore.updateMessage(chatIdValue, aiMessageId, newContent);
@@ -214,32 +214,30 @@ const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: stri
   }, { immediate: true });
 
   try {
-    console.log('[ChatRoom] Sending messages to AI');
+    console.log('[ChatHome] Sending messages to AI');
     
-    const result = await streamFromAI(
-      chatStore.getChat(chatIdValue)?.messages.map(msg => ({
-        ...msg,
-        timestamp: new Date(msg.createdAt)
-      })) || [],
+    // 直接使用传入的用户消息，避免从store获取可能存在的同步问题
+    if (!userMessage || !userMessage.trim()) {
+      throw new Error('没有找到用户消息')
+    }
+    
+    const result = await streamFromAIEdge(
+      userMessage,
       (chunk: string) => {
-        // ✅ 直接更新响应式变量，watch会监听到并更新store
-        aiMessageContent.value += chunk;
-        
-        // ✅ 同时也可以直接更新store（双重保障）
-        // 但要注意：如果store更新不够快，这里可能会有延迟
-        // 所以我们主要依赖watch
+        // 直接更新响应式变量，watch会监听到并更新store
+        aiMessageContent.value += chunk
       },
-      abortController.value.signal,
-      chatIdValue
-    );
+      undefined, // doc_id 参数，暂时不使用
+      abortController.value.signal
+    )
 
     if (!result.success) {
       throw new Error(result.error || 'AI回复失败');
     }
 
-    console.log(`[ChatRoom] AI response completed: ${aiMessageContent.value.length} characters`);
+    console.log(`[ChatHome] AI response completed: ${aiMessageContent.value.length} characters`);
     
-    // ✅ 确保最终内容同步到store
+    // 确保最终内容同步到store
     if (aiMessageContent.value) {
       chatStore.updateMessage(chatIdValue, aiMessageId, aiMessageContent.value);
     }
@@ -250,7 +248,7 @@ const sendToAIAndReceiveResponse = async (chatIdValue: number, userMessage: stri
       aiMessageContent.value,
       'assistant',
       sendMessage
-    );
+    )
     
   } catch (error) {
     console.error('AI回复错误:', error);
