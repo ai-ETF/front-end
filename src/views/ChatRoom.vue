@@ -178,8 +178,16 @@ const onSend = async (msg: string) => {
   console.log('[ChatRoom] trimmed text:', text)
 
   if (!chatId.value) { // 如果当前没有选中的聊天（需要新建会话）
-    const id = Date.now() // 使用时间戳作为新会话 id（数字类型）
+    // 使用时间戳作为新会话 id（数字类型）
+    const id = Date.now();
     console.log('[ChatRoom] creating new chat with id:', id)
+
+    // 检查用户认证状态
+    if (!isAuthenticated.value) {
+      console.log('[ChatRoom] 检测到未认证用户，跳转到登录页面');
+      router.push('/login');
+      return;
+    }
 
     // 创建聊天并把用户消息作为首条消息
     const userMessageId = `user-${Date.now()}`;
@@ -217,6 +225,13 @@ const onSend = async (msg: string) => {
       await sendToAIAndReceiveResponse(id, text);
     }
   } else {
+    // 检查用户认证状态
+    if (!isAuthenticated.value) {
+      console.log('[ChatRoom] 检测到未认证用户，跳转到登录页面');
+      router.push('/login');
+      return;
+    }
+    
     // 已在聊天中，直接添加消息
     console.log('[ChatRoom] adding message to existing chat:', chatId.value)
     

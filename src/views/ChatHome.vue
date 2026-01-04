@@ -106,6 +106,13 @@ const onSend = async (msg: string) => {
     const newChat = await createChat(text)
 
     if(!newChat) {
+      // 检查是否为认证相关错误 - 用户未认证时createChat会失败
+      if (!isAuthenticated.value) {
+        console.log('[ChatRoom] 检测到未认证用户，跳转到登录页面');
+        router.push('/login');
+        return;
+      }
+      
       message.error('创建新聊天失败，请稍后重试。')
       console.error('[ChatRoom] Failed to create new chat.')
       return
@@ -146,6 +153,13 @@ const onSend = async (msg: string) => {
       await sendToAIAndReceiveResponse(newChat.id, text);
     }
   } else {
+    // 检查用户认证状态
+    if (!isAuthenticated.value) {
+      console.log('[ChatRoom] 检测到未认证用户，跳转到登录页面');
+      router.push('/login');
+      return;
+    }
+    
     // 已在聊天中，直接添加消息
     console.log('[ChatRoom] adding message to existing chat:', chatId.value)
     
