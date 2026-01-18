@@ -1,177 +1,189 @@
-# Supabase CLI
+# 智能ETF分析系统前端
 
-[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
-](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
+## 项目概述
 
-[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
+智能ETF分析系统是一个基于Vue 3和Supabase构建的前端应用，旨在为金融从业者和投资者提供智能化的ETF数据分析服务。该系统集成了用户认证、文件管理、AI对话等功能，支持与AI服务集成进行数据分析。
 
-This repository contains all the functionality for Supabase CLI.
+## 功能特性
 
-- [x] Running Supabase locally
-- [x] Managing database migrations
-- [x] Creating and deploying Supabase Functions
-- [x] Generating types directly from your database schema
-- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
+- **用户认证**：支持邮箱密码注册/登录，使用Supabase身份验证
+- **文件管理**：支持文件浏览、上传、删除，展示为列表和网格视图
+- **AI对话**：在聊天室中向AI发送问题并接收响应
+- **数据持久化**：利用Pinia + persistedstate插件实现状态本地存储
+- **响应式布局**：适配不同设备屏幕尺寸
+- **Markdown渲染**：使用markdown-it + highlight.js渲染消息内容
+- **安全处理**：使用dompurify防止XSS攻击
 
-## Getting started
+## 技术栈
 
-### Install the CLI
+- **前端框架**: Vue 3.5.22 (Composition API + `<script setup>`)
+- **构建工具**: Vite 7.1.7
+- **语言**: TypeScript ~5.9.0
+- **状态管理**: Pinia 3.0.3 + pinia-plugin-persistedstate
+- **路由**: Vue Router 4.5.1
+- **UI库**: Ant Design Vue 4.2.6 + @ant-design/icons-vue
+- **代码规范**: ESLint + Prettier
+- **TypeScript工具**: vue-tsc
+- **HTTP客户端**: @supabase/supabase-js 2.76.1
+- **Markdown解析**: markdown-it + highlight.js
+- **安全过滤**: dompurify
 
-Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
+## 系统架构
+
+```
+前端(Vue 3 + Vite) → Supabase (Auth/Storage/DB) ↔ Edge Functions (AI Service)
+```
+
+### 分层架构
+
+- **Views层**: 负责页面展示逻辑
+- **Components层**: 可复用UI组件
+- **Composables层**: 封装可复用逻辑
+- **Services层**: 实现业务逻辑
+- **Stores层**: 全局状态管理（Pinia）
+- **Lib层**: 基础库与客户端配置
+- **Utils层**: 通用工具函数
+
+## 环境要求
+
+- **Node.js**: ^20.19.0 || >=22.12.0
+- **npm / yarn / pnpm**
+- **Git**
+
+## 项目安装与运行
+
+1. **克隆项目**
 
 ```bash
-npm i supabase --save-dev
+git clone <repository-url>
+cd /home/sing/smartAnalysisOfETF/front-end
 ```
 
-When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
-
-```
-NODE_OPTIONS=--no-experimental-fetch yarn add supabase
-```
-
-> **Note**
-For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
-
-<details>
-  <summary><b>macOS</b></summary>
-
-  Available via [Homebrew](https://brew.sh). To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To install the beta release channel:
-  
-  ```sh
-  brew install supabase/tap/supabase-beta
-  brew link --overwrite supabase-beta
-  ```
-  
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Windows</b></summary>
-
-  Available via [Scoop](https://scoop.sh). To install:
-
-  ```powershell
-  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-  scoop install supabase
-  ```
-
-  To upgrade:
-
-  ```powershell
-  scoop update supabase
-  ```
-</details>
-
-<details>
-  <summary><b>Linux</b></summary>
-
-  Available via [Homebrew](https://brew.sh) and Linux packages.
-
-  #### via Homebrew
-
-  To install:
-
-  ```sh
-  brew install supabase/tap/supabase
-  ```
-
-  To upgrade:
-
-  ```sh
-  brew upgrade supabase
-  ```
-
-  #### via Linux packages
-
-  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
-
-  ```sh
-  sudo apk add --allow-untrusted <...>.apk
-  ```
-
-  ```sh
-  sudo dpkg -i <...>.deb
-  ```
-
-  ```sh
-  sudo rpm -i <...>.rpm
-  ```
-
-  ```sh
-  sudo pacman -U <...>.pkg.tar.zst
-  ```
-</details>
-
-<details>
-  <summary><b>Other Platforms</b></summary>
-
-  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
-
-  ```sh
-  go install github.com/supabase/cli@latest
-  ```
-
-  Add a symlink to the binary in `$PATH` for easier access:
-
-  ```sh
-  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
-  ```
-
-  This works on other non-standard Linux distros.
-</details>
-
-<details>
-  <summary><b>Community Maintained Packages</b></summary>
-
-  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
-  To install in your working directory:
-
-  ```bash
-  pkgx install supabase
-  ```
-
-  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
-</details>
-
-### Run the CLI
+2. **安装依赖**
 
 ```bash
-supabase bootstrap
+npm install
 ```
 
-Or using npx:
+3. **环境配置**
+
+创建 `.env` 文件并配置 Supabase 相关信息：
+
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+4. **启动开发服务器**
 
 ```bash
-npx supabase bootstrap
+npm run dev
 ```
 
-The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
+5. **构建生产版本**
 
-## Docs
-
-Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
-
-## Breaking changes
-
-We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
-
-However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
-
-## Developing
-
-To run from source:
-
-```sh
-# Go >= 1.22
-go run . help
+```bash
+npm run build
 ```
+
+6. **预览构建结果**
+
+```bash
+npm run preview
+```
+
+## 代码质量与规范
+
+- **类型检查**: `npm run type-check`
+- **代码格式化**: `npm run format`
+- **代码检查与修复**: `npm run lint`
+
+## 主要功能模块
+
+### 用户认证模块
+
+使用 Supabase Auth 实现安全的用户注册/登录功能，支持邮箱密码认证。
+
+### 文件管理模块
+
+提供直观的文件上传与管理界面，支持文件列表和网格视图，与 Supabase Storage 集成。
+
+### AI对话模块
+
+支持与AI模型的对话式交互以获取ETF分析结果，使用流式响应实现实时交互体验。
+
+### 调试功能
+
+- `/debug-ai-question`: AI问答调试页面，包含预设问题
+- `/debug-ingest`: 文档处理调试功能
+
+## 项目配置说明
+
+### Supabase配置
+
+项目使用Supabase作为后端服务，包括：
+- 用户认证（Auth）
+- 文件存储（Storage）
+- 数据库（Database）
+- 边缘函数（Edge Functions）
+
+### AI服务集成
+
+项目通过Supabase Edge Functions与AI服务集成，支持流式响应和实时数据处理。
+
+### 状态管理
+
+使用Pinia进行状态管理，包括：
+- [auth](file:///home/sing/smartAnalysisOfETF/front-end/src/stores/auth.ts#L3-L23) store: 用户认证状态
+- [chat](file:///home/sing/smartAnalysisOfETF/front-end/src/stores/chat.ts#L17-L119) store: 聊天记录和消息
+- [file](file:///home/sing/smartAnalysisOfETF/front-end/src/stores/file.ts#L3-L25) store: 文件管理状态
+- [sidebar](file:///home/sing/smartAnalysisOfETF/front-end/src/stores/sidebar.ts#L1-L15) store: 侧边栏状态
+
+## 开发规范
+
+1. **代码风格**: 使用ESLint + Prettier统一代码风格
+2. **类型安全**: 强制使用TypeScript
+3. **组件命名**: 采用PascalCase
+4. **调试日志**: 使用`console.debug()`输出调试信息
+5. **参数校验**: 实施多层级参数校验机制
+6. **安全性**: 所有用户输入需经过sanitize处理
+
+## 部署说明
+
+### 构建命令
+
+```bash
+npm run build
+```
+
+### 部署建议
+
+- 静态托管（如Netlify、Vercel、S3 + CloudFront）
+- 确保HTTPS生产部署
+- 配置正确的环境变量
+
+### Supabase部署
+
+边缘函数需要单独部署到Supabase平台：
+
+```bash
+supabase functions deploy
+```
+
+## 已知问题
+
+1. 存在[useSupabaseAuth-issue.md](file:///home/sing/smartAnalysisOfETF/front-end/note/useSupabaseAuth-issue.md)文档记录的身份验证相关问题待解决
+2. Edge Functions需要确保部署到兼容Deno的运行时环境
+3. 大量文件列表需考虑虚拟滚动优化（当前未实现）
+
+## 贡献指南
+
+1. Fork项目
+2. 创建功能分支
+3. 提交更改
+4. 确保代码质量和测试通过
+5. 提交Pull Request
+
+## 许可证
+
+[MIT](LICENSE)
