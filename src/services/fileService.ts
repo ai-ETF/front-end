@@ -26,7 +26,7 @@ export async function fetchFilesByParentId(
     if (error) throw error;
 
     // 类型转换和验证
-    return (data || []).map((item) => ({
+    return (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       type: item.type === "folder" ? "folder" : "file",
@@ -74,8 +74,8 @@ export async function getFileInfo(fileId: string): Promise<FileItem | null> {
       parent_id: data.parent_id,
       storage_path: data.storage_path,
       user_id: data.user_id,
-      created_at: data.created_at ?? "",
-      updated_at: data.updated_at ?? "",
+      created_at: (data as any).created_at ?? "",
+      updated_at: (data as any).updated_at ?? "",
       isSelected: false,
       isUploading: false,
       uploadProgress: 0,
@@ -87,11 +87,13 @@ export async function getFileInfo(fileId: string): Promise<FileItem | null> {
 }
 
 /**
- * 上传文件服务函数
- *
- * 功能：将用户选择的文件上传到 Supabase 存储，并在数据库中创建相应的记录
- * 流程：1. 验证用户身份 -> 2. 上传文件到存储桶 -> 3. 在数据库创建记录 -> 4. 触发向量化处理（可选）
- * 事务性：整个操作是原子性的，如果数据库插入失败会清理已上传的文件
+ * 上传文件服务函数 - 重构版
+ * 
+ * 遵循端到端路径：
+ * 1. 前端直传文件到 Storage
+ * 2. 前端写 files 表（文件系统注册）
+ * 3. 前端调用 Edge Function 申请"后端可下载凭证"
+ * 4. 前端将 Edge 返回的信息传给后端
  *
  * @param file - 要上传的 File 对象（来自 input[type=file] 或拖拽）
  * @param parentId - 父文件夹ID，null表示上传到根目录
@@ -114,25 +116,26 @@ export async function uploadFile(
   console.debug("当前用户ID:", user.id);
 
   let fileName: string | undefined = undefined;
+  let filePath: string | undefined = undefined;
 
   try {
-    // 1. 上传文件到存储桶
-    // 提取文件扩展名（如 'pdf', 'txt'）
-    const fileExt = file.name.split(".").pop();
-    // 生成唯一文件名：时间戳 + 随机字符串 + 原始扩展名，可能会触发Supbase的安全机制，重命名
-    // 事实证明都会重命名的
-    fileName = `${Date.now()}-${
-      Math.random().toString(36).slice(2, 9)
-    }.${fileExt}`;
-
-    // fileName = `${Date.now()}_${user.id.slice(0, 8)}.${fileExt}`;
+    // 第一步：前端直传文件到 Storage
+    // 生成唯一文件名：用户ID + 时间戳 + UUID + 原始扩展名
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "bin";
+    fileName = `${user.id}-${Date.now()}-${crypto.randomUUID()}.${fileExt}`;
+    
     // 构建存储路径：用户ID/ uploads / 唯一文件名
-    const filePath = `${user.id}/uploads/${fileName}`;
+    filePath = `${user.id}/uploads/${fileName}`;
 
-    // 执行文件上传到 Supabase 的 user-files 存储桶
+    console.log("开始上传文件到Storage，路径:", filePath);
+
+    // 执行文件上传到 Supabase 的存储桶
     const { error: uploadError, data: uploadData } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, file);
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false // 不允许覆盖同名文件
+      });
 
     // 如果上传失败，抛出错误
     if (uploadError) {
@@ -140,7 +143,9 @@ export async function uploadFile(
       throw uploadError;
     }
 
-    // 2. 在数据库中创建记录
+    console.log("文件上传成功，开始注册到files表");
+
+    // 第二步：前端写 files 表（文件系统注册）
     // 将文件元数据插入 files 表
     const { data, error } = await supabase
       .from("files")
@@ -167,8 +172,17 @@ export async function uploadFile(
         hint: error.hint,
         code: error.code,
       });
+      
+      // 清理已上传的文件（如果数据库插入失败）
+      console.log("清理已上传的文件...");
+      await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([filePath]);
+        
       throw error;
     }
+
+    console.log("文件注册成功，ID:", data.id);
 
     // 返回标准化的 FileItem 对象给调用方
     return {
@@ -180,8 +194,8 @@ export async function uploadFile(
       parent_id: data.parent_id,
       storage_path: data.storage_path,
       user_id: data.user_id,
-      created_at: data.created_at ?? "",
-      updated_at: data.updated_at ?? "",
+      created_at: (data as any).created_at ?? "",
+      updated_at: (data as any).updated_at ?? "",
       isSelected: false,
       isUploading: false,
       uploadProgress: 0,
@@ -192,10 +206,10 @@ export async function uploadFile(
     // 清理已上传的文件（如果数据库插入失败）
     // 这是为了保证数据一致性：有数据库记录才有实际文件
     try {
-      if (fileName) {
+      if (filePath) {
         await supabase.storage
           .from(BUCKET_NAME)
-          .remove([`${user.id}/uploads/${fileName}`]);
+          .remove([filePath]);
       }
     } catch (cleanupError) {
       console.error("Failed to cleanup uploaded file:", cleanupError);
@@ -203,6 +217,178 @@ export async function uploadFile(
 
     throw error;
   }
+}
+
+/**
+ * 调用 Edge Function 为后端处理准备下载凭证
+ * 
+ * 遵循端到端路径：
+ * 1. 前端调用 Edge Function 申请"后端可下载凭证"
+ * 2. Edge Function 校验 file_id 是否属于当前用户
+ * 3. Edge Function 返回签名的下载 URL
+ * 4. 前端将此 URL 传递给后端进行处理
+ * 
+ * @param fileId 文件在 files 表中的 ID
+ * @param storagePath 文件在 Storage 中的路径（用于辅助校验）
+ * @returns 包含签名下载 URL 的响应对象
+ */
+export async function prepareDownloadForBackend(
+  fileId: string,
+  storagePath: string,
+) {
+  try {
+    // 获取当前用户的 JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("无法获取用户认证 token");
+      throw new Error("无法获取用户认证 token");
+    }
+
+    // 准备请求体
+    const requestBody = {
+      file_id: fileId,
+      storage_path: storagePath,
+    };
+
+    // 发送请求到 Supabase Edge Function
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/files/prepare-download`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    // 检查响应状态
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+    console.log("下载凭证准备成功:", result);
+    return result; // 返回包含签名 URL 的结果
+  } catch (error) {
+    console.error("调用下载凭证准备函数失败:", error);
+    throw error; // 抛出错误，让调用方处理
+  }
+}
+
+/**
+ * 触发后端文档处理流程
+ * 
+ * 将 Edge Function 生成的下载凭证传递给后端进行文档处理
+ * 
+ * @param fileId 文件在 files 表中的 ID
+ * @param signedUrl 从 Edge Function 获取的签名下载 URL
+ * @returns 后端处理结果
+ */
+export async function triggerDocumentProcessing(
+  fileId: string,
+  signedUrl: string,
+) {
+  try {
+    // 获取当前用户的认证 token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("无法获取用户认证 token");
+      throw new Error("无法获取用户认证 token");
+    }
+
+    // 准备请求体
+    const requestBody = {
+      file_id: fileId,
+      signed_url: signedUrl,
+    };
+
+    // 发送请求到后端处理服务
+    const response = await fetch(
+      "https://wiynpkkfsiiqnofhifhs.supabase.co/functions/v1/ingest-document-ts",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      },
+    );
+
+    // 检查响应状态
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || `HTTP error! status: ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+    console.log("文档处理触发成功:", result);
+    return result;
+  } catch (error) {
+    console.error("触发文档处理失败:", error);
+    throw error;
+  }
+}
+
+/**
+ * 完整的文件上传与后端处理流程
+ * 
+ * 按照端到端路径顺序执行：
+ * 1. 前端直传文件到 Storage
+ * 2. 前端写 files 表（文件系统注册）
+ * 3. 前端调用 Edge Function 申请"后端可下载凭证"
+ * 4. 前端将凭证传递给后端进行文档处理
+ * 
+ * @param file 要上传的文件
+ * @param parentId 父文件夹ID
+ * @param options 上传选项
+ * @returns 处理结果
+ */
+export async function uploadAndProcessFile(
+  file: File,
+  parentId: string | null = null,
+  options: UploadOptions = {},
+) {
+  console.log("开始执行完整的文件上传与处理流程");
+
+  // 步骤 1 & 2: 上传文件并注册到 files 表
+  const fileRecord = await uploadFile(file, parentId, options);
+  console.log("文件上传与注册成功，ID:", fileRecord.id);
+
+  // 步骤 3: 调用 Edge Function 获取下载凭证
+  if (!fileRecord.storage_path) {
+    throw new Error(`文件 ${fileRecord.id} 缺少 storage_path，无法继续处理`);
+  }
+  
+  const downloadCredentials = await prepareDownloadForBackend(
+    fileRecord.id,
+    fileRecord.storage_path
+  );
+  console.log("获取下载凭证成功");
+
+  // 步骤 4: 将凭证传递给后端进行处理
+  const processingResult = await triggerDocumentProcessing(
+    fileRecord.id,
+    downloadCredentials.signed_url
+  );
+  console.log("后端处理触发成功");
+
+  return {
+    fileRecord,
+    downloadCredentials,
+    processingResult
+  };
 }
 
 /**
@@ -534,7 +720,7 @@ export async function searchFiles(
 
     if (error) throw error;
 
-    return (data || []).map((item) => ({
+    return (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       type: item.type === "folder" ? "folder" : "file",
@@ -569,7 +755,7 @@ export async function getRecentFiles(limit: number = 20): Promise<FileItem[]> {
 
     if (error) throw error;
 
-    return (data || []).map((item) => ({
+    return (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
       type: item.type === "folder" ? "folder" : "file",
@@ -617,57 +803,60 @@ async function checkCircularReference(
 }
 
 /**
- * 调用 Supabase 的 ingest-document-ts 函数处理文档
- * @param storagePath 文档在 Supabase 存储桶中的路径
+ * 调用文档处理函数 - 为调试页面提供的便捷函数
+ * 
+ * @param storagePath 文件在 Storage 中的路径
  * @param fileName 文件名
+ * @returns 处理结果
  */
 export async function callIngestDocumentFunction(
   storagePath: string,
   fileName: string,
 ) {
   try {
-    // 获取当前用户的 JWT token
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-
-    if (!token) {
-      console.error("无法获取用户认证 token");
-      throw new Error("无法获取用户认证 token");
-    }
-
-    // 准备请求体
-    const requestBody = {
-      storage_path: storagePath,
-      file_name: fileName,
-      source: fileName, // 如果没有提供 source，默认使用文件名
-    };
-
-    // 发送请求到 Supabase 函数
-    const response = await fetch(
-      "https://wiynpkkfsiiqnofhifhs.supabase.co/functions/v1/ingest-document-ts",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      },
-    );
-
-    // 检查响应状态
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error || `HTTP error! status: ${response.status}`,
-      );
-    }
-
-    const result = await response.json();
-    console.log("文档处理成功:", result);
-    return result; // 返回结果
+    // 在实际实现中，我们需要通过某种方式获取文件的 ID
+    // 但现在，我们先假定这是通过 storagePath 查找的
+    // 注意：这是一个简化实现，实际应用中可能需要更复杂的逻辑来根据存储路径查找文件 ID
+    
+    // 由于我们不能仅凭存储路径直接查询文件 ID，我们创建一个包装函数
+    // 这里需要前端先通过其他方式获取文件 ID，或者后端提供基于路径的接口
+    
+    console.warn("警告: 通过存储路径直接调用文档处理功能需要特殊处理");
+    
+    // 这里我们不能直接实现，因为我们无法仅通过 storagePath 找到数据库中的文件 ID
+    // 通常在真实场景中，我们应该已经拥有文件 ID，因为它是从前端上传流程中获得的
+    throw new Error("此函数需要文件 ID 而不仅仅是存储路径。请先通过其他方式获取文件 ID。");
   } catch (error) {
     console.error("调用文档处理函数失败:", error);
-    throw error; // 抛出错误，让调用方处理
+    throw error;
+  }
+}
+
+// 添加一个可以直接通过路径触发处理的函数（适用于调试场景）
+/**
+ * 通过存储路径直接触发文档处理
+ * 
+ * 注意：这仅适用于调试场景，因为在真实应用中我们通常是通过文件 ID 来处理的
+ * 
+ * @param fileId 文件在 files 表中的 ID
+ * @param storagePath 文件在 Storage 中的路径
+ * @returns 处理结果
+ */
+export async function callIngestDocumentFunctionById(
+  fileId: string,
+  storagePath: string,
+) {
+  try {
+    // 获取下载凭证
+    const downloadCredentials = await prepareDownloadForBackend(fileId, storagePath);
+    
+    // 触发文档处理
+    const result = await triggerDocumentProcessing(fileId, downloadCredentials.signed_url);
+    
+    console.log("文档处理触发成功:", result);
+    return result;
+  } catch (error) {
+    console.error("触发文档处理失败:", error);
+    throw error;
   }
 }

@@ -68,7 +68,6 @@ const router = createRouter({
 // 添加全局前守卫
 router.beforeEach((to, from, next) => {
   const { isAuthenticated } = useSupabaseAuth();
-
   // 检查目标路由是否需要认证
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     // 如果路由需要认证但用户未认证，则重定向到登录页
@@ -85,3 +84,6 @@ router.beforeEach((to, from, next) => {
 });
 
 export default router;
+
+
+
