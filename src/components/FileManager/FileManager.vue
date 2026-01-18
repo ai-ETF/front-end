@@ -298,7 +298,19 @@ import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs.vue'
 import FileListItem from '@/components/FileListItem/FileListItem.vue'
 import FileGridItem from '@/components/FileGridItem/FileGridItem.vue'
 import type { FileItem } from '@/types/file'
-import { callIngestDocumentFunction } from '@/services/fileService' // 导入文档处理函数
+import { 
+  fetchFilesByParentId, 
+  createFolder, 
+  renameFile as renameFileService, 
+  moveFile as moveFileService, 
+  deleteFile as deleteFileService, 
+  downloadFile as downloadFileService, 
+  searchFiles, 
+  getRecentFiles, 
+  uploadFile,
+  prepareDownloadForBackend,
+  triggerDocumentProcessing
+} from '@/services/fileService' // 导入文件服务函数
 
 // SVG 图标导入
 import arrowLeft from '@/assets/svg/arrow-left.svg'
@@ -576,7 +588,11 @@ async function startUpload() {
         
         // 上传成功后，调用 Supabase 的文档处理函数
         if (uploadedFile && uploadedFile.storage_path) {
-          await callIngestDocumentFunction(uploadedFile.storage_path, uploadedFile.name)
+          // 获取下载凭证
+          const downloadCredentials = await prepareDownloadForBackend(uploadedFile.id, uploadedFile.storage_path);
+          
+          // 触发文档处理
+          await triggerDocumentProcessing(uploadedFile.id, downloadCredentials.signed_url);
         }
       } catch (error) {
         console.error('上传单个文件失败:', file.name, error)

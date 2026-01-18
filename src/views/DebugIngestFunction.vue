@@ -4,6 +4,16 @@
     
     <div class="debug-form">
       <div class="form-group">
+        <label for="fileId">文件ID:</label>
+        <input
+          id="fileId"
+          v-model="fileId"
+          type="text"
+          placeholder="输入文件的ID，例如: 12345678-1234-1234-1234-123456789012"
+        />
+      </div>
+      
+      <div class="form-group">
         <label for="storagePath">存储路径:</label>
         <input
           id="storagePath"
@@ -56,8 +66,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { callIngestDocumentFunction } from '@/services/fileService';
+import { callIngestDocumentFunctionById } from '@/services/fileService';
 
+const fileId = ref('');
 const storagePath = ref('');
 const fileName = ref('');
 const isCalling = ref(false);
@@ -67,6 +78,7 @@ const error = ref('');
 
 // 组件挂载时设置默认值
 onMounted(() => {
+  fileId.value = 'your-file-id-here'; // 添加一个默认文件 ID
   storagePath.value = 'b978e5f5-2908-4dc5-991e-5c4371cb60b0/uploads/1767324018342-7fua308.txt';
   fileName.value = 'doc';
 });
@@ -79,9 +91,10 @@ const testCallIngestDocumentFunction = async () => {
   isCalling.value = true;
   
   try {
-    console.log('准备调用文档处理函数，参数:', { storagePath: storagePath.value, fileName: fileName.value });
+    console.log('准备调用文档处理函数，参数:', { fileId: fileId.value, storagePath: storagePath.value });
     
-    const response = await callIngestDocumentFunction(storagePath.value, fileName.value);
+    // 使用文件 ID 调用文档处理函数
+    const response = await callIngestDocumentFunctionById(fileId.value, storagePath.value);
     
     // 检查响应是否包含错误字段
     if (response && response.error) {

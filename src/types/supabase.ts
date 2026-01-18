@@ -14,34 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
+      allocation_models: {
+        Row: {
+          config: Json
+          created_at: string | null
+          id: string
+          version: string | null
+        }
+        Insert: {
+          config: Json
+          created_at?: string | null
+          id?: string
+          version?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          id?: string
+          version?: string | null
+        }
+        Relationships: []
+      }
       chats: {
         Row: {
           created_at: string | null
-          id: number
+          id: string
+          metadata: Json | null
           title: string | null
           updated_at: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
-          id?: number
+          id?: string
+          metadata?: Json | null
           title?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
-          id?: number
+          id?: string
+          metadata?: Json | null
           title?: string | null
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: []
+      }
+      document_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string | null
+          document_id: string
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          page_number: number | null
+        }
+        Insert: {
+          chunk_index: number
+          content: string
+          created_at?: string | null
+          document_id: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string | null
+          document_id?: string
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          page_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_chunks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string | null
+          doc_type: string | null
+          file_id: string
+          id: string
+          metadata: Json | null
+          status: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          doc_type?: string | null
+          file_id: string
+          id?: string
+          metadata?: Json | null
+          status: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          doc_type?: string | null
+          file_id?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "files"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       files: {
         Row: {
           created_at: string | null
           id: string
+          metadata: Json | null
           mime_type: string | null
           name: string
           parent_id: string | null
@@ -54,6 +164,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          metadata?: Json | null
           mime_type?: string | null
           name: string
           parent_id?: string | null
@@ -66,6 +177,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          metadata?: Json | null
           mime_type?: string | null
           name?: string
           parent_id?: string | null
@@ -85,29 +197,101 @@ export type Database = {
           },
         ]
       }
+      market_indicators: {
+        Row: {
+          as_of: string | null
+          id: string
+          indicator_type: string | null
+          metadata: Json | null
+          source: string | null
+          symbol: string | null
+          value: number | null
+        }
+        Insert: {
+          as_of?: string | null
+          id?: string
+          indicator_type?: string | null
+          metadata?: Json | null
+          source?: string | null
+          symbol?: string | null
+          value?: number | null
+        }
+        Update: {
+          as_of?: string | null
+          id?: string
+          indicator_type?: string | null
+          metadata?: Json | null
+          source?: string | null
+          symbol?: string | null
+          value?: number | null
+        }
+        Relationships: []
+      }
+      message_chunks: {
+        Row: {
+          chunk_id: string
+          confidence: number | null
+          id: string
+          message_id: string
+          metadata: Json | null
+        }
+        Insert: {
+          chunk_id: string
+          confidence?: number | null
+          id?: string
+          message_id: string
+          metadata?: Json | null
+        }
+        Update: {
+          chunk_id?: string
+          confidence?: number | null
+          id?: string
+          message_id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_chunks_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "document_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_chunks_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
-          chat_id: number | null
-          content: string | null
+          chat_id: string
+          content: string
           created_at: string | null
-          id: number
-          role: string | null
+          id: string
+          metadata: Json | null
+          role: string
           user_id: string | null
         }
         Insert: {
-          chat_id?: number | null
-          content?: string | null
+          chat_id: string
+          content: string
           created_at?: string | null
-          id?: number
-          role?: string | null
+          id?: string
+          metadata?: Json | null
+          role: string
           user_id?: string | null
         }
         Update: {
-          chat_id?: number | null
-          content?: string | null
+          chat_id?: string
+          content?: string
           created_at?: string | null
-          id?: number
-          role?: string | null
+          id?: string
+          metadata?: Json | null
+          role?: string
           user_id?: string | null
         }
         Relationships: [
@@ -120,39 +304,194 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      risk_questionnaires: {
         Row: {
-          email: string
-          id: number
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          questions: Json
           updated_at: string | null
-          user_id: string | null
-          username: string | null
+          version: string
         }
         Insert: {
-          email: string
-          id?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          questions: Json
           updated_at?: string | null
-          user_id?: string | null
-          username?: string | null
+          version: string
         }
         Update: {
-          email?: string
-          id?: number
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          questions?: Json
           updated_at?: string | null
-          user_id?: string | null
-          username?: string | null
+          version?: string
         }
         Relationships: []
+      }
+      user_allocations: {
+        Row: {
+          allocation: Json
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          model_id: string
+          over_allocated: boolean | null
+          user_id: string
+        }
+        Insert: {
+          allocation: Json
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_id: string
+          over_allocated?: boolean | null
+          user_id: string
+        }
+        Update: {
+          allocation?: Json
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          model_id?: string
+          over_allocated?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_allocations_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "allocation_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_risk_answers: {
+        Row: {
+          answers: Json
+          created_at: string | null
+          id: string
+          is_completed: boolean | null
+          questionnaire_id: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          questionnaire_id: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string | null
+          id?: string
+          is_completed?: boolean | null
+          questionnaire_id?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_user_answers_questionnaire"
+            columns: ["questionnaire_id"]
+            isOneToOne: false
+            referencedRelation: "risk_questionnaires"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_risk_profiles: {
+        Row: {
+          ai_summary: Json | null
+          answer_id: string | null
+          confidence_score: number | null
+          created_at: string | null
+          dimension_scores: Json
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          model_version: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          source: Database["public"]["Enums"]["profile_source"]
+          total_score: number | null
+          user_id: string
+          weighted_scores: Json | null
+        }
+        Insert: {
+          ai_summary?: Json | null
+          answer_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dimension_scores?: Json
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          model_version: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          source: Database["public"]["Enums"]["profile_source"]
+          total_score?: number | null
+          user_id: string
+          weighted_scores?: Json | null
+        }
+        Update: {
+          ai_summary?: Json | null
+          answer_id?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          dimension_scores?: Json
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          model_version?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          source?: Database["public"]["Enums"]["profile_source"]
+          total_score?: number | null
+          user_id?: string
+          weighted_scores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_risk_profiles_answer"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "user_risk_answers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_chunks: {
+        Args: {
+          document_id?: string
+          match_count: number
+          query_embedding: string
+        }
+        Returns: {
+          chunk_id: string
+          chunk_index: number
+          content: string
+          page_number: number
+          similarity: number
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      profile_source: "questionnaire" | "default" | "manual" | "system_inferred"
+      risk_level: "conservative" | "moderate" | "aggressive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -279,6 +618,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      profile_source: ["questionnaire", "default", "manual", "system_inferred"],
+      risk_level: ["conservative", "moderate", "aggressive"],
+    },
   },
 } as const
