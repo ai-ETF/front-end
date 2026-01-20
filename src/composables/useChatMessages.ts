@@ -142,7 +142,7 @@ export const useChatMessages = () => {
    * @param chatId 聊天会话 ID
    * @returns 聊天消息列表或空数组
    */
-  const fetchMessages = async (chatId: number) => {
+  const fetchMessages = async (chatId: number | string) => {
     try {
       // 设置加载状态为 true
       loading.value = true
@@ -201,7 +201,7 @@ export const useChatMessages = () => {
    * @param role 消息发送者角色 ('user' 或 'assistant')
    * @returns 保存的消息或 null
    */
-  const sendMessage = async (chatId: number, content: string, role: 'user' | 'assistant') => {
+  const sendMessage = async (chatId: number | string, content: string, role: 'user' | 'assistant') => {
     try {
       // 设置加载状态为 true
       loading.value = true
@@ -269,7 +269,7 @@ export const useChatMessages = () => {
    * @param chatId 要删除的聊天会话 ID
    * @returns 删除操作是否成功
    */
-  const deleteChat = async (chatId: number) => {
+  const deleteChat = async (chatId: number | string) => {
     try {
       // 设置加载状态为 true
       loading.value = true
@@ -285,6 +285,16 @@ export const useChatMessages = () => {
 
       // 如果删除聊天会话过程中出现错误，则抛出异常
       if (chatError) throw chatError
+
+      // 删除该聊天会话下的所有消息
+      const { error: messageError } = await supabase
+        .from('messages')
+        .delete()
+        .eq('chat_id', chatId)        // 匹配聊天 ID
+        .eq('user_id', user.value!.id) // 确保是当前用户的消息
+
+      // 如果删除消息过程中出现错误，则抛出异常
+      if (messageError) throw messageError
 
       // 更新本地聊天会话列表，移除已删除的会话
       chats.value = chats.value.filter(chat => chat.id !== chatId)

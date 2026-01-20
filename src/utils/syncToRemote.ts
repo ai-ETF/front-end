@@ -14,11 +14,11 @@ import type { ChatMessage as RemoteChatMessage } from '@/composables/useChatMess
  * @param sendMessage 发送消息到云端的函数
  */
 export const syncMessageToRemote = async (
-  chatId: number,
+  chatId: number | string,
   message: string,
   role: 'user' | 'assistant',
   sendMessage: (
-    chatId: number,
+    chatId: number | string,
     content: string,
     role: 'user' | 'assistant'
   ) => Promise<RemoteChatMessage | null>,
@@ -56,8 +56,8 @@ export const syncMessageToRemote = async (
  * @param deleteChat 删除聊天会话的远程函数
  */
 export const syncDeleteChatToRemote = async (
-  chatId: number,
-  deleteChat: (chatId: number) => Promise<boolean>
+  chatId: number | string,
+  deleteChat: (chatId: number | string) => Promise<boolean>
 ) => {
   try {
     // 先从远程删除
@@ -86,9 +86,9 @@ export const syncDeleteChatToRemote = async (
  * @param updateChatTitle 更新聊天标题的远程函数
  */
 export const syncUpdateChatTitleToRemote = async (
-  chatId: number,
+  chatId: number | string,
   title: string,
-  updateChatTitle: (chatId: number, title: string) => Promise<RemoteChatMessage | null>
+  updateChatTitle: (chatId: number | string, title: string) => Promise<RemoteChatMessage | null>
 ) => {
   try {
     // 先更新远程

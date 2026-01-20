@@ -72,13 +72,23 @@ const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
 
-// 当前 chat id（如果有），统一转换为数字类型
-const chatId = computed((): number | undefined => {
+// 当前 chat id（如果有），支持数字ID和字符串ID（如UUID）
+const chatId = computed((): number | string | undefined => {
   const id = route.params.id
   if (Array.isArray(id)) {
-    return id.length > 0 ? Number(id[0]) : undefined
+    if (id.length === 0) return undefined
+    
+    // 检查是否为纯数字字符串，如果是则转换为数字，否则保持为字符串
+    const firstId = id[0]
+    const numId = Number(firstId)
+    return isNaN(numId) ? firstId : numId
   }
-  return id ? Number(id) : undefined
+  
+  if (!id) return undefined
+  
+  // 检查是否为纯数字字符串，如果是则转换为数字，否则保持为字符串
+  const numId = Number(id)
+  return isNaN(numId) ? id : numId
 })
 
 // 当前显示的消息：如果选中聊天则显示 store 中的消息，否则显示本地默认信息
@@ -92,28 +102,45 @@ const messages = computed(() => {
       timestamp: m.timestamp  // 直接使用timestamp，因为现在是必需字段
     })) : []
   }
-  return localMessages.value
+  // 只有在没有聊天ID且store中没有聊天的情况下才显示欢迎消息
+  if (chatStore.chats.length === 0) {
+    return localMessages.value
+  }
+  return []
 })
      
 // 加载聊天历史消息
 const loadChatHistory = async () => {
   if (chatId.value && isAuthenticated.value) {
     // 确保聊天在 store 中存在
-    let chat = chatStore.getChat(chatId.value)
+    let chat = chatStore.getChat(chatId.value as number) // 根据实际的ID类型修改
     
     // 如果聊天不存在于 store 中，则初始化一个
     if (!chat) {
       // 先尝试从服务器获取聊天信息
       try {
         const { fetchChats } = useChatMessages()
-        const remoteChats = await fetchChats()
-        const remoteChat = remoteChats.find(c => c.id === chatId.value)
+        const remoteChats: any[] = await fetchChats() // 强制类型转换以避免类型冲突
+        
+        // 处理ID匹配 - 可能是数字ID或字符串ID
+        let remoteChat;
+        if (typeof chatId.value === 'number') {
+          // 如果chatId是数字，查找匹配的数字ID
+          remoteChat = remoteChats.find(c => Number(c.id) === chatId.value)
+        } else {
+          // 如果chatId是字符串，查找匹配的字符串ID
+          remoteChat = remoteChats.find(c => String(c.id) === chatId.value)
+        }
         
         if (remoteChat) {
           // 使用从服务器获取的信息初始化本地聊天对象
-          const newChat: ChatItem = { id: remoteChat.id, title: remoteChat.title as string, messages: [] }
+          const newChat: ChatItem = { 
+            id: typeof remoteChat.id === 'number' ? remoteChat.id : parseInt(remoteChat.id) || Number(remoteChat.id), 
+            title: remoteChat.title as string, 
+            messages: [] 
+          }
           chatStore.addChat(newChat)
-          chat = chatStore.getChat(remoteChat.id)
+          chat = chatStore.getChat(newChat.id)
           console.log(`[ChatRoom] 成功初始化聊天 ${chatId.value} 到本地 store`)
         } else {
           // TODO：应该要抛出一个错误提示
@@ -122,9 +149,13 @@ const loadChatHistory = async () => {
       } catch (error) {
         console.error('[ChatRoom] 获取聊天信息失败:', error)
         // 出错时仍然创建一个默认聊天
-        const newChat: ChatItem = { id: chatId.value, title: '错误聊天', messages: [] }
+        const newChat: ChatItem = { 
+          id: typeof chatId.value === 'number' ? chatId.value : Number(chatId.value) || Date.now(), 
+          title: '错误聊天', 
+          messages: [] 
+        }
         chatStore.addChat(newChat)
-        chat = chatStore.getChat(chatId.value)
+        chat = chatStore.getChat(newChat.id)
       }
     }
 
@@ -132,13 +163,14 @@ const loadChatHistory = async () => {
     if (chat && chat.messages.length === 0) {
       try {
         // 使用同步函数加载消息到本地 store
-        await syncChatDetailsToLocal(chatId.value, fetchMessages)
+        const fetchMessagesTyped = fetchMessages as (chatId: number | string) => Promise<any[]>
+        await syncChatDetailsToLocal(chatId.value, fetchMessagesTyped)
         console.log(`[ChatRoom] 聊天 ${chatId.value} 的历史消息已加载到本地 store。`)
       } catch (error) {
         console.error('[ChatRoom] 加载聊天历史失败:', error)
       }
     } else if (chat && chat.messages.length > 0) {
-      console.log(`[ChatRoom] 聊天 ${chatId.value} 已有本地消息，无需加载。`)
+      console.log(`[ChatRoom] 聊天 ${chatId.value} 已有本地消息，共 ${chat.messages.length} 条。`)
     }
   }
 }
@@ -161,7 +193,7 @@ watch([chatId, isAuthenticated], ([newChatId, newIsAuth]) => {
   if (newChatId && newIsAuth) {
     loadChatHistory()
   }
-}, { immediate: true })
+}, { immediate: false })  // 移除immediate: true以避免初始化冲突
 
 // 发送消息：如果没有 chatId 则创建新聊天并跳转；如果已有 chatId 则添加消息
 const onSend = async (msg: string) => {
@@ -372,6 +404,17 @@ onMounted(async() => {
   console.log('[ChatRoom] component mounted, loading chat history if needed.')
   await loadChatHistory()
   console.log('[ChatRoom] chat history load attempt finished.')
+  
+  // 检查当前聊天是否已经有消息，如果没有，则尝试从store获取
+  // 注意：我们不再重复调用loadChatHistory以避免无限循环
+  if (chatId.value) {
+    const chat = chatStore.getChat(chatId.value);
+    if (chat) {
+      console.log(`[ChatRoom] Chat has ${chat.messages.length} messages in store`)
+    } else {
+      console.log('[ChatRoom] Chat does not exist in store after loading')
+    }
+  }
 })
 
 onUnmounted(() => {

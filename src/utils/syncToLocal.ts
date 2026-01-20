@@ -34,7 +34,7 @@ export const syncChatsToLocal = (remoteChats: ChatSession[]): void => {
  * @param chatId 聊天会话 ID
  * @param remoteMessages 远程消息列表
  */
-export const syncMessagesToLocal = (chatId: number, remoteMessages: RemoteChatMessage[]): void => {
+export const syncMessagesToLocal = (chatId: number | string, remoteMessages: RemoteChatMessage[]): void => {
   const chatStore = useChatStore()
   
   // 获取对应的本地聊天会话
@@ -66,7 +66,7 @@ export const syncMessagesToLocal = (chatId: number, remoteMessages: RemoteChatMe
  * @param chatId 聊天会话 ID
  * @param fetchMessages 从远程获取消息的函数
  */
-export const syncChatDetailsToLocal = async (chatId: number, fetchMessages: (chatId: number) => Promise<RemoteChatMessage[]>) => {
+export const syncChatDetailsToLocal = async (chatId: number | string, fetchMessages: (chatId: number | string) => Promise<RemoteChatMessage[]>) => {
   try {
     const chatStore = useChatStore();
     

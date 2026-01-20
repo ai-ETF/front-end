@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, reactive } from 'vue'
+import { ref, onMounted, computed, reactive, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Logo from '@/components/Logo.vue'
 import { useChatStore } from '@/stores/chat'
@@ -297,6 +297,9 @@ const confirmDelete = async () => {
     // 如果当前正在查看这个聊天，导航到主页
     if (routeId.value === modalState.deleteChatItem.id) {
       router.push('/chat')
+    } else {
+      // 重新加载聊天列表以反映删除后的状态
+      await loadChatsToStore();
     }
     
     console.log('聊天已删除:', modalState.deleteChatItem.id)
@@ -311,7 +314,7 @@ const confirmDelete = async () => {
 const loadChatsToStore = async () => {
   if (isAuthenticated.value) {
     try {
-      const remoteChats = await fetchChats()
+      const remoteChats: any[] = await fetchChats() // 类型注解以避免类型错误
       
       syncChatsToLocal(remoteChats)
       
@@ -330,10 +333,22 @@ onMounted(() => {
   // 初始化认证状态
   mount()
   
-  // 加载聊天记录
+  // 先加载聊天记录
   loadChatsToStore().then(() => {
     console.log('聊天页面加载执行完成。')
   })
+  
+  // 监听路由变化，当路由变化时重新加载聊天列表
+  // 添加条件判断，仅在必要时加载
+  watch(route, (newRoute, oldRoute) => {
+    // 检查路由是否真正发生了变化（不仅仅是参数顺序等细微变化）
+    if (newRoute.fullPath !== oldRoute.fullPath) {
+      // 添加防抖机制，避免频繁调用
+      setTimeout(() => {
+        loadChatsToStore();
+      }, 300);
+    }
+  });
 })
 
 // 从 Ant Design Vue 导入图标组件 主要是：UserOutlined - 用户图标、UploadOutlined - 上传图标
@@ -631,6 +646,16 @@ import { UploadOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons
   padding: 8px;
 }
 </style>
+
+
+
+
+
+
+
+
+
+
 
 
 

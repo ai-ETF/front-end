@@ -9,7 +9,7 @@ export interface ChatMessage {
 }
 
 export interface ChatItem {
-  id: number; // id 和路由有关，改为number类型与数据库保持一致
+  id: number | string; // 支持数字ID和字符串ID（如UUID）
   title: string; // 聊天标题
   messages: ChatMessage[]; // 消息列表
 }
@@ -41,10 +41,10 @@ export const useChatStore = defineStore("chat", {
 
     // 向指定聊天添加消息
     addMessage(
-      chatId: number,
+      chatId: number | string,  // 支持数字ID和字符串ID
       message: string | ChatMessage,
       isuser?: boolean,
-    ) { // 修改参数类型为number
+    ) {
       const chat = this.chats.find((c) => c.id === chatId);
       if (!chat) return;
 
@@ -70,12 +70,12 @@ export const useChatStore = defineStore("chat", {
     },
 
     // 获取指定聊天
-    getChat(chatId: number) {
+    getChat(chatId: number | string) {  // 支持数字ID和字符串ID
       return this.chats.find((c) => c.id === chatId);
     },
 
     // 从指定聊天中移除消息
-    removeMessage(chatId: number, messageId: string) {
+    removeMessage(chatId: number | string, messageId: string) {  // 支持数字ID和字符串ID
       const chat = this.chats.find((c) => c.id === chatId);
       if (!chat) return false;
 
@@ -88,7 +88,7 @@ export const useChatStore = defineStore("chat", {
     },
 
     // 更新消息内容
-    updateMessage(chatId: number, messageId: string, newText: string) {
+    updateMessage(chatId: number | string, messageId: string, newText: string) {  // 支持数字ID和字符串ID
       const chat = this.chats.find((c) => c.id === chatId);
       console.log("[Updating message]:", { chatId, messageId, newText });
 
@@ -103,13 +103,13 @@ export const useChatStore = defineStore("chat", {
       return false;
     },
 
-    clearChat(chatId: number) { // 修改参数类型为number
+    clearChat(chatId: number | string) { // 支持数字ID和字符串ID
       const chat = this.chats.find((c) => c.id === chatId);
       if (chat) {
         chat.messages = [];
       }
     },
-    deleteChat(chatId: number) { // 修改参数类型为number
+    deleteChat(chatId: number | string) { // 支持数字ID和字符串ID
       const index = this.chats.findIndex((c) => c.id === chatId);
       if (index !== -1) {
         this.chats.splice(index, 1);
